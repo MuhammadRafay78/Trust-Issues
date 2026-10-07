@@ -1,215 +1,379 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>So Close</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Trust Issues</title>
 <style>
-/* Layout: full-screen portrait canvas, HUD and overlays layered on top. Single dark look by choice. */
+/* Layout: one landscape canvas, letterboxed; thumb pads float over the bottom corners. Single dark look by choice. */
 :root {
   --bg: #14121a;
-  --pipe: #2f9e6e;
-  --pipe-edge: #7be3b0;
-  --bird: #ffcf3f;
-  --alert: #ff4d4d;
+  --panel: #1f1b2b;
   --ink: #f4f1fa;
   --muted: #9a94ad;
-  --display: "Bungee", "Impact", sans-serif;
-  --body: "Nunito", system-ui, sans-serif;
+  --accent: #ffcf3f;
+  --alert: #ff5a5a;
+  --font: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color-scheme: dark;
 }
-html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--body); touch-action: manipulation; -webkit-user-select: none; user-select: none; }
-body { padding: 0; }
-#stage { position: relative; height: 100%; max-width: 480px; margin: 0 auto; }
-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.hud { position: absolute; top: 14px; left: 0; right: 0; text-align: center; pointer-events: none; }
-.score { font-family: var(--display); font-size: 64px; line-height: 1; }
-.best { font-size: 13px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
-.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 16px; text-align: center; background: rgba(20,18,26,.82); }
-.overlay h1 { font-family: var(--display); font-size: 44px; margin: 0; font-weight: 400; line-height: 1; }
-.overlay p { margin: 0; max-width: 28ch; color: var(--muted); font-size: 16px; line-height: 1.4; }
-.taunt { color: var(--ink); font-size: 20px; font-weight: 800; }
-button { font-family: var(--display); font-size: 22px; color: #14121a; background: var(--bird); border: 0; border-radius: 14px; padding: 16px 32px; cursor: pointer; }
-button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-button.ghost { background: transparent; color: var(--muted); font-family: var(--body); font-size: 14px; padding: 8px 12px; }
-.ad { position: absolute; inset: 0; background: #1d1a26; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px 16px; text-align: center; }
-.ad .x { position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; padding: 0; font: 700 12px var(--body); border-radius: 50%; background: #3a3548; color: var(--muted); transition: transform .12s; }
-.ad .tag { font-size: 11px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
-.fail { color: var(--alert); font-weight: 800; min-height: 1.4em; }
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-user-select: none; user-select: none; touch-action: none; -webkit-touch-callout: none; }
+#wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+canvas { display: block; image-rendering: pixelated; }
+.pad { position: fixed; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; }
+.pad.l { left: calc(16px + env(safe-area-inset-left, 0px)); }
+.pad.r { right: calc(16px + env(safe-area-inset-right, 0px)); }
+.pad button { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(138,127,181,.55); background: rgba(31,27,43,.22); color: var(--ink); font: 700 26px var(--font); touch-action: none; padding: 0; }
+.pad button.on { background: rgba(255,207,63,.3); border-color: var(--accent); }
+.pad button.jump { width: 80px; height: 80px; font-size: 16px; letter-spacing: .06em; }
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; text-align: center; background: rgba(20,18,26,.9); }
+.screen h1 { margin: 0; font-size: 40px; letter-spacing: .04em; text-transform: uppercase; }
+.screen p { margin: 0; max-width: 34ch; color: var(--muted); line-height: 1.5; font-size: 14px; }
+.screen .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.screen button { font: 700 18px var(--font); color: #14121a; background: var(--accent); border: 0; border-radius: 10px; padding: 14px 28px; cursor: pointer; }
+.screen button.alt { background: transparent; color: var(--ink); border: 2px solid #4b4466; }
+.screen button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+[hidden] { display: none !important; }
 </style>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@600;800&display=swap">
-</head><body>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
 
-<div id="stage">
-  <canvas id="c"></canvas>
-  <div class="hud"><div class="score" id="score">0</div><div class="best" id="best"></div></div>
+<div class="pad l" id="padL"><button id="bL" aria-label="Move left">&lt;</button><button id="bR" aria-label="Move right">&gt;</button></div>
+<div class="pad r" id="padR"><button id="bJ" class="jump" aria-label="Jump">JUMP</button></div>
 
-  <div class="overlay" id="menu">
-    <h1>SO CLOSE</h1>
-    <p>Tap to flap. Squeeze through the gaps. It will go fine for a while.</p>
-    <button id="play">PLAY</button>
+<div class="screen" id="menu">
+  <h1>Trust Issues</h1>
+  <p>Reach the door. Floors, spikes, ceilings and doors may be lying to you. Dying is how you learn.</p>
+  <div class="row">
+    <button id="play">Play</button>
+    <button id="cont" class="alt" hidden>Continue</button>
   </div>
+</div>
 
-  <div class="overlay" id="over" hidden>
-    <h1 id="overScore">0</h1>
-    <div class="taunt" id="taunt"></div>
-    <p id="friend"></p>
-    <button id="retry">TRY AGAIN</button>
-    <button class="ghost" id="adBtn">Continue for free (ad)</button>
-  </div>
-
-  <div class="ad" id="ad" hidden>
-    <button class="x" id="adX" aria-label="Close ad">x</button>
-    <div class="tag">Ad &middot; 30s</div>
-    <h1 style="font-family:var(--display);font-weight:400;margin:0;font-size:32px">ULTRA TAX SAVER 9000</h1>
-    <p style="color:var(--muted);margin:0">Save on taxes you do not have.</p>
-    <button id="adGo">WATCH TO CONTINUE</button>
-    <div class="fail" id="adFail"></div>
-  </div>
+<div class="screen" id="end" hidden>
+  <h1>You made it</h1>
+  <p id="endText"></p>
+  <button id="again">Play again</button>
 </div>
 
 <script>
 (function () {
-  var W = 360, H = 640;
-  var cv = document.getElementById("c"), ctx = cv.getContext("2d");
-  var $ = function (id) { return document.getElementById(id); };
-  var scoreEl = $("score"), bestEl = $("best");
-  var best = 0;
-  try { best = +localStorage.getItem("soclose-best") || 0; } catch (e) {}
+  var T = 16, COLS = 30, ROWS = 17, W = COLS * T, H = ROWS * T;
+  var SPEED = 105, JUMP = 345, GRAV = 900;
+
+  /* ---------- Levels ---------- */
+  function grid() { var g = []; for (var r = 0; r < ROWS; r++) g.push(new Array(COLS + 1).join(".").split("")); return g; }
+  function level(name, build) {
+    var g = grid();
+    var api = {
+      set: function (c, r, ch) { g[r][c] = ch; },
+      row: function (r, c1, c2, ch) { for (var c = c1; c <= c2; c++) g[r][c] = ch; },
+      floor: function (c1, c2) { api.row(15, c1, c2, "#"); api.row(16, c1, c2, "#"); },
+      fake: function (c1, c2) { api.row(15, c1, c2, "F"); api.row(16, c1, c2, "F"); }
+    };
+    build(api);
+    return { name: name, g: g };
+  }
+
+  var LEVELS = [
+    level("Easy, right?", function (L) {
+      L.floor(0, 29); L.fake(10, 13);
+      L.set(2, 14, "P"); L.set(24, 14, "D");
+    }),
+    level("Spikes are a mood", function (L) {
+      L.floor(0, 29); L.row(14, 5, 7, "X"); L.set(10, 14, "H"); L.set(16, 14, "H");
+      L.set(2, 14, "P"); L.set(24, 14, "D");
+    }),
+    level("Look up", function (L) {
+      L.floor(0, 29); L.set(10, 11, "C"); L.set(16, 11, "C"); L.set(22, 11, "C");
+      L.set(2, 14, "P"); L.set(27, 14, "D");
+    }),
+    level("Leap of faith", function (L) {
+      L.floor(0, 4); L.floor(21, 29);
+      L.set(8, 13, "G"); L.set(12, 13, "G"); L.set(16, 13, "G");
+      L.set(2, 14, "P"); L.set(26, 14, "D");
+    }),
+    level("Left is right", function (L) {
+      L.floor(0, 14); L.floor(18, 21); L.floor(25, 29);
+      L.set(8, 14, "Z"); L.set(2, 14, "P"); L.set(27, 14, "D");
+    }),
+    level("Door's shy", function (L) {
+      L.floor(0, 29); L.row(14, 18, 19, "^"); L.set(25, 14, "H");
+      L.set(12, 14, "R"); L.set(28, 14, "r"); L.set(2, 14, "P");
+    }),
+    level("The staircase", function (L) {
+      L.floor(0, 29);
+      L.row(12, 6, 9, "#");
+      L.row(10, 12, 13, "#"); L.row(10, 14, 15, "F");
+      L.row(10, 19, 22, "#"); L.set(20, 7, "C");
+      L.row(9, 25, 29, "#"); L.set(26, 8, "H");
+      L.set(2, 14, "P"); L.set(28, 8, "D");
+    }),
+    level("No hard feelings", function (L) {
+      L.floor(0, 12); L.floor(16, 29);
+      L.set(8, 14, "Q"); L.set(12, 14, "H");
+      L.row(14, 20, 21, "^"); L.set(24, 14, "Z");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    })
+  ];
 
   var TAUNTS = [
-    "So close.", "Skill issue.", "That was literally the easy part.", "Almost had it.",
-    "The pipe moved. Probably.", "Your thumb was fine. The game was not.",
-    "You blinked.", "Try holding the phone differently.", "One more. You can feel it.",
-    "Pipes do not have feelings. They just win."
+    "Skill issue.", "The floor was fine. Then it wasn't.", "You trusted it.", "Classic.",
+    "Nobody saw that.", "Again.", "It was right there.", "Bold choice.",
+    "The level says hi.", "Try not dying.", "Learning, allegedly.", "Spikes: 1. You: 0."
   ];
-  var FRIENDS = ["Kevin got 31 on his first try.", "Your cousin got 54 on a bus.", "Someone in Ohio just hit 112.", "Your best is " + best + ". Kevin does not care."];
 
-  var bird, pipes, score, state, last, dead = 0, fails = 0, audio;
+  /* ---------- State ---------- */
+  var cv = document.getElementById("c"), ctx = cv.getContext("2d");
+  var $ = function (id) { return document.getElementById(id); };
+  var mode = "menu", li = 0, deaths = 0, best = 0;
+  var g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, reversed, particles, msg, msgT, deadT, bannerT, tick = 0;
+  var input = { l: false, r: false }, audio;
+  try { best = +localStorage.getItem("trust-best") || 0; } catch (e) {}
 
-  function beep(f, d) {
+  function beep(f, d, type) {
     try {
       audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-      var o = audio.createOscillator(), g = audio.createGain();
-      o.frequency.value = f; o.type = "square"; g.gain.value = 0.04;
-      o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + d);
+      var o = audio.createOscillator(), v = audio.createGain();
+      o.type = type || "square"; o.frequency.value = f; v.gain.value = 0.035;
+      o.connect(v); v.connect(audio.destination); o.start(); o.stop(audio.currentTime + d);
     } catch (e) {}
   }
 
-  function resize() {
-    var r = cv.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2);
-    cv.width = r.width * d; cv.height = r.height * d;
-    ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
-  }
-  window.addEventListener("resize", resize);
-
-  function reset() {
-    bird = { x: 90, y: H / 2, v: 0 };
-    pipes = []; score = 0; scoreEl.textContent = "0";
-    for (var i = 0; i < 3; i++) addPipe(W + 120 + i * 210);
-  }
-  function addPipe(x) {
-    var gap = Math.max(118, 160 - pipes.length * 0.9);
-    pipes.push({ x: x, base: 150 + Math.random() * (H - 300), gap: gap, off: 0, seen: false, ph: Math.random() * 6 });
-  }
-
-  function flap() {
-    if (state !== "run") return;
-    bird.v = -430; beep(520, 0.06);
-  }
-
-  function start() {
-    reset(); state = "run"; last = performance.now();
-    $("menu").hidden = true; $("over").hidden = true; $("ad").hidden = true;
-    bestEl.textContent = "Best " + best;
+  function load(i) {
+    li = i; g = LEVELS[i].g.map(function (r) { return r.slice(); });
+    doors = []; hs = []; cs = []; zs = [];
+    ftimers = {}; shakes = {}; falling = []; revealed = {}; reversed = false; particles = [];
+    msg = ""; msgT = 0; deadT = 0; bannerT = 1.6;
+    var r, c, ch, k;
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
+      ch = g[r][c];
+      if (ch === "P") { p = { x: c * T + 3, y: (r + 1) * T - 14, w: 10, h: 14, vx: 0, vy: 0, ground: false, coy: 0, buf: 0, face: 1 }; g[r][c] = "."; }
+      else if (ch === "D") { doors.push({ c: c, r: r, kind: "D" }); g[r][c] = "."; }
+      else if (ch === "Q") { doors.push({ c: c, r: r, kind: "Q" }); g[r][c] = "."; }
+      else if (ch === "R") { doors.push({ c: c, r: r, kind: "D", hop: true, hopped: false }); g[r][c] = "."; }
+      else if (ch === "H") { hs.push({ c: c, r: r }); g[r][c] = "."; }
+      else if (ch === "C") { cs.push({ c: c, r: r }); }
+      else if (ch === "Z") { zs.push({ c: c, r: r }); g[r][c] = "."; }
+    }
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (g[r][c] === "r") {
+      g[r][c] = ".";
+      for (k = 0; k < doors.length; k++) if (doors[k].hop) doors[k].dest = { c: c, r: r };
+    }
+    mode = "play";
   }
 
+  /* ---------- Collision ---------- */
+  function solidAt(c, r) {
+    if (c < 0 || c >= COLS) return true;
+    if (r < 0 || r >= ROWS) return false;
+    var ch = g[r][c]; return ch === "#" || ch === "F" || ch === "G" || ch === "C";
+  }
+  function hitSolid(x, y, w, h) {
+    var c1 = Math.floor(x / T), c2 = Math.floor((x + w - 0.001) / T), r1 = Math.floor(y / T), r2 = Math.floor((y + h - 0.001) / T);
+    for (var r = r1; r <= r2; r++) for (var c = c1; c <= c2; c++) if (solidAt(c, r)) return { c: c, r: r };
+    return null;
+  }
+  function overlap(ax, ay, aw, ah, bx, by, bw, bh) { return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }
+
+  /* ---------- Rules ---------- */
   function die() {
-    state = "over"; fails++; beep(110, 0.25);
-    if (score > best) { best = score; try { localStorage.setItem("soclose-best", best); } catch (e) {} }
-    $("overScore").textContent = score;
-    $("taunt").textContent = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
-    $("friend").textContent = FRIENDS[Math.floor(Math.random() * FRIENDS.length)].replace(/\d+\./, best + ".");
-    $("adBtn").hidden = fails < 2;
-    var retry = $("retry");
-    retry.style.transform = "";
-    setTimeout(function () { $("over").hidden = false; }, 450);
+    if (mode !== "play") return;
+    mode = "dead"; deadT = 0.75; deaths++;
+    msg = TAUNTS[Math.floor(Math.random() * TAUNTS.length)]; msgT = 1.4;
+    for (var i = 0; i < 14; i++) particles.push({ x: p.x + 5, y: p.y + 7, vx: (Math.random() - .5) * 220, vy: -Math.random() * 220, t: 0.7 });
+    beep(110, 0.3, "sawtooth");
+  }
+  function win() {
+    beep(660, 0.1); setTimeout(function () { beep(990, 0.15); }, 110);
+    if (li + 1 > best) { best = li + 1; try { localStorage.setItem("trust-best", best); } catch (e) {} }
+    if (li + 1 >= LEVELS.length) {
+      mode = "end"; $("endText").textContent = "All " + LEVELS.length + " levels done. Deaths: " + deaths + ". Nothing was ever your fault.";
+      $("end").hidden = false;
+    } else load(li + 1);
   }
 
-  function step(dt) {
-    bird.v += 1250 * dt; bird.y += bird.v * dt;
-    var speed = 150 + Math.min(score, 30) * 2;
-    for (var i = 0; i < pipes.length; i++) {
-      var p = pipes[i];
-      p.x -= speed * dt;
-      // From pipe 5 on, the gap breathes. It grows more eager the closer you get.
-      var near = Math.max(0, Math.min(1, (260 - (p.x - bird.x)) / 260));
-      p.off = score >= 5 ? Math.sin(performance.now() / 380 + p.ph) * 16 * near : 0;
-      var cy = p.base + p.off, top = cy - p.gap / 2, bot = cy + p.gap / 2;
-      if (bird.x + 12 > p.x && bird.x - 12 < p.x + 56 && (bird.y - 12 < top || bird.y + 12 > bot)) return die();
-      if (!p.seen && p.x + 56 < bird.x) {
-        p.seen = true; score++; scoreEl.textContent = score; beep(880, 0.05);
-      }
-    }
-    if (pipes[0].x < -70) { pipes.shift(); addPipe(pipes[pipes.length - 1].x + 210); }
-    if (bird.y > H - 12 || bird.y < -40) die();
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#1b1824"; ctx.fillRect(0, 0, W, H);
-    for (var i = 0; i < pipes.length; i++) {
-      var p = pipes[i], cy = p.base + p.off, top = cy - p.gap / 2, bot = cy + p.gap / 2;
-      ctx.fillStyle = "#2f9e6e";
-      ctx.fillRect(p.x, 0, 56, top); ctx.fillRect(p.x, bot, 56, H - bot);
-      ctx.fillStyle = "#7be3b0";
-      ctx.fillRect(p.x - 4, top - 14, 64, 14); ctx.fillRect(p.x - 4, bot, 64, 14);
-    }
-    var tilt = Math.max(-0.5, Math.min(1, bird.v / 600));
-    ctx.save(); ctx.translate(bird.x, bird.y); ctx.rotate(tilt);
-    ctx.fillStyle = "#ffcf3f"; ctx.beginPath(); ctx.arc(0, 0, 13, 0, 7); ctx.fill();
-    ctx.fillStyle = "#14121a"; ctx.beginPath(); ctx.arc(5, -3, 3, 0, 7); ctx.fill();
-    ctx.fillStyle = "#ff7a3d"; ctx.fillRect(10, 1, 9, 5);
-    ctx.restore();
-  }
-
-  function loop(t) {
-    if (state === "run") { step(Math.min((t - last) / 1000, 0.033)); last = t; }
-    if (bird) draw();
-    requestAnimationFrame(loop);
-  }
-
-  // Input
-  var stage = $("stage");
-  stage.addEventListener("pointerdown", function (e) {
-    if (e.target.closest("button, .ad")) return;
-    flap();
-  });
-  window.addEventListener("keydown", function (e) { if (e.code === "Space") { e.preventDefault(); flap(); } });
-
-  $("play").addEventListener("click", start);
-
-  // The retry button dodges the first tap after a bad death.
-  var dodged = false;
-  $("retry").addEventListener("click", function (e) {
-    if (fails % 3 === 0 && !dodged) {
-      dodged = true;
-      e.target.style.transform = "translate(" + (Math.random() < .5 ? -90 : 90) + "px, 10px)";
+  function update(dt) {
+    tick += dt;
+    if (bannerT > 0) bannerT -= dt;
+    if (msgT > 0) msgT -= dt;
+    var i, c, r, h;
+    for (i = particles.length - 1; i >= 0; i--) { var q = particles[i]; q.t -= dt; q.vy += 700 * dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.t <= 0) particles.splice(i, 1); }
+    if (mode === "dead") {
+      deadT -= dt;
+      if (deadT <= 0) { var keepMsg = msg, keepT = msgT; load(li); msg = keepMsg; msgT = keepT; bannerT = 0; }
       return;
     }
-    dodged = false; start();
-  });
+    if (mode !== "play") return;
 
-  $("adBtn").addEventListener("click", function () {
-    $("over").hidden = true; $("ad").hidden = false; $("adFail").textContent = "";
-    $("adX").style.transform = "";
-  });
-  var xTries = 0;
-  $("adX").addEventListener("click", function (e) {
-    if (xTries++ < 1) { e.target.style.transform = "translate(-60px, 180px)"; return; }
-    xTries = 0; $("ad").hidden = true; $("over").hidden = false;
-  });
-  $("adGo").addEventListener("click", function () {
-    $("adFail").textContent = "Ad failed to load. Tap again.";
-  });
+    var dir = (input.r ? 1 : 0) - (input.l ? 1 : 0); if (reversed) dir = -dir;
+    p.vx = dir * SPEED; if (dir) p.face = dir;
+    if (p.buf > 0) p.buf -= dt; if (p.coy > 0) p.coy -= dt;
+    if (p.buf > 0 && p.coy > 0) { p.vy = -JUMP; p.buf = 0; p.coy = 0; beep(520, 0.06); }
+    p.vy = Math.min(p.vy + GRAV * dt, 520);
 
-  resize(); reset(); state = "menu"; requestAnimationFrame(loop);
+    p.x += p.vx * dt;
+    h = hitSolid(p.x, p.y, p.w, p.h);
+    if (h) { if (p.vx > 0) p.x = h.c * T - p.w; else if (p.vx < 0) p.x = (h.c + 1) * T; }
+    p.y += p.vy * dt; p.ground = false;
+    h = hitSolid(p.x, p.y, p.w, p.h);
+    if (h) { if (p.vy > 0) { p.y = h.r * T - p.h; p.ground = true; p.coy = 0.08; } else p.y = (h.r + 1) * T; p.vy = 0; }
+
+    var cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+    var c1 = Math.floor(p.x / T), c2 = Math.floor((p.x + p.w - 0.001) / T);
+
+    // fake floors crumble shortly after being stood on
+    if (p.ground) {
+      var rr = Math.floor((p.y + p.h + 1) / T);
+      for (c = c1; c <= c2; c++) if (g[rr] && g[rr][c] === "F" && ftimers[rr + "," + c] === undefined) ftimers[rr + "," + c] = 0.15;
+    }
+    for (var key in ftimers) {
+      ftimers[key] -= dt;
+      if (ftimers[key] <= 0) {
+        var pr = key.split(","), fr = +pr[0], fc = +pr[1], cc;
+        // the whole connected strip of fake tiles goes at once
+        for (cc = fc; cc >= 0 && g[fr][cc] === "F"; cc--) { g[fr][cc] = "."; if (g[fr + 1] && g[fr + 1][cc] === "F") g[fr + 1][cc] = "."; }
+        for (cc = fc + 1; cc < COLS && g[fr][cc] === "F"; cc++) { g[fr][cc] = "."; if (g[fr + 1] && g[fr + 1][cc] === "F") g[fr + 1][cc] = "."; }
+        delete ftimers[key]; beep(160, 0.12, "triangle");
+      }
+    }
+
+    // ghost blocks show themselves when touched
+    for (r = Math.floor(p.y / T) - 1; r <= Math.floor((p.y + p.h) / T) + 1; r++)
+      for (c = c1 - 1; c <= c2 + 1; c++)
+        if (g[r] && g[r][c] === "G" && overlap(p.x - 3, p.y - 3, p.w + 6, p.h + 6, c * T, r * T, T, T)) revealed[r + "," + c] = true;
+
+    // hidden spikes pop up when you get close
+    for (i = 0; i < hs.length; i++) {
+      var hh = hs[i];
+      if (!hh.done && Math.abs(cx - (hh.c * T + 8)) < 20 && Math.abs(cy - (hh.r * T + 8)) < 40) { hh.done = true; g[hh.r][hh.c] = "^"; beep(300, 0.05, "sawtooth"); }
+    }
+    // ceiling blocks shake, then drop
+    for (i = 0; i < cs.length; i++) {
+      var cb = cs[i], k2 = cb.r + "," + cb.c;
+      if (!cb.fired && shakes[k2] === undefined) {
+        var dx = cx - (cb.c * T + 8);
+        if (dx > -46 && dx < 8 && p.y > cb.r * T) shakes[k2] = 0.15;
+      } else if (shakes[k2] !== undefined) {
+        shakes[k2] -= dt;
+        if (shakes[k2] <= 0) { delete shakes[k2]; cb.fired = true; g[cb.r][cb.c] = "."; falling.push({ x: cb.c * T, y: cb.r * T, vy: 0 }); }
+      }
+    }
+    for (i = falling.length - 1; i >= 0; i--) {
+      var f = falling[i]; f.vy += 700 * dt; f.y += f.vy * dt;
+      if (overlap(p.x, p.y, p.w, p.h, f.x + 1, f.y + 1, T - 2, T - 2)) die();
+      if (f.y > H + 20 || hitSolid(f.x + 2, f.y + 2, T - 4, T - 4)) { falling.splice(i, 1); beep(90, 0.1, "triangle"); }
+    }
+    // reverse-controls zones
+    for (i = 0; i < zs.length; i++) if (!reversed && overlap(p.x, p.y, p.w, p.h, zs[i].c * T, zs[i].r * T - 8, T, T + 8)) { reversed = true; msg = "Huh?"; msgT = 1.2; beep(200, 0.2, "triangle"); }
+
+    // spikes (real ones only; X is a harmless fake)
+    for (r = Math.floor(p.y / T); r <= Math.floor((p.y + p.h - 0.001) / T); r++)
+      for (c = c1; c <= c2; c++)
+        if (g[r] && g[r][c] === "^" && overlap(p.x, p.y, p.w, p.h, c * T + 3, r * T + 7, 10, 9)) die();
+
+    // doors
+    for (i = 0; i < doors.length && mode === "play"; i++) {
+      var d = doors[i], dcx = d.c * T + 8;
+      if (d.hop && !d.hopped && d.dest && Math.abs(cx - dcx) < 44) { d.hopped = true; d.c = d.dest.c; d.r = d.dest.r; msg = "Rude."; msgT = 1; beep(740, 0.08); }
+      if (overlap(p.x, p.y, p.w, p.h, d.c * T + 2, d.r * T, 12, T)) { if (d.kind === "Q") die(); else { win(); return; } }
+    }
+    if (mode === "play" && p.y > H + 24) die();
+  }
+
+  /* ---------- Drawing ---------- */
+  function tile(x, y) {
+    ctx.fillStyle = "#4b4466"; ctx.fillRect(x, y, T, T);
+    ctx.fillStyle = "#8a7fb5"; ctx.fillRect(x, y, T, 2);
+    ctx.fillStyle = "#3a3452"; ctx.fillRect(x, y + T - 1, T, 1); ctx.fillRect(x + T - 1, y, 1, T);
+  }
+  function spike(x, y) {
+    ctx.fillStyle = "#ff5a5a";
+    for (var i = 0; i < 2; i++) { ctx.beginPath(); ctx.moveTo(x + i * 8, y + 16); ctx.lineTo(x + i * 8 + 4, y + 7); ctx.lineTo(x + i * 8 + 8, y + 16); ctx.fill(); }
+  }
+  function door(x, y) {
+    ctx.fillStyle = "#6b4a2b"; ctx.fillRect(x + 2, y, 12, 16);
+    ctx.fillStyle = "#8f6a40"; ctx.fillRect(x + 3, y + 1, 10, 14);
+    ctx.fillStyle = "#ffcf3f"; ctx.fillRect(x + 10, y + 8, 2, 2);
+  }
+  function draw() {
+    ctx.fillStyle = "#14121a"; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#1a1722";
+    var gx, gy;
+    for (gx = 0; gx < W; gx += T) ctx.fillRect(gx, 0, 1, H);
+    for (gy = 0; gy < H; gy += T) ctx.fillRect(0, gy, W, 1);
+    if (!g) return;
+    var r, c, ch, i, x, y;
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
+      ch = g[r][c]; x = c * T; y = r * T;
+      if (ch === "#" || ch === "F") tile(x, y);
+      else if (ch === "C") { var s = shakes[r + "," + c]; tile(x + (s !== undefined ? Math.sin(tick * 90) * 1.5 : 0), y); }
+      else if (ch === "G" && revealed[r + "," + c]) tile(x, y);
+      else if (ch === "^" || ch === "X") spike(x, y);
+    }
+    for (i = 0; i < doors.length; i++) door(doors[i].c * T, doors[i].r * T);
+    for (i = 0; i < falling.length; i++) tile(falling[i].x, falling[i].y);
+    for (i = 0; i < particles.length; i++) { ctx.fillStyle = "#ffcf3f"; ctx.fillRect(particles[i].x, particles[i].y, 3, 3); }
+    if (mode === "play" || mode === "end") {
+      ctx.fillStyle = "#ffcf3f"; ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.fillStyle = "#14121a"; ctx.fillRect(p.x + (p.face > 0 ? 6 : 2), p.y + 3, 2, 3);
+    }
+    ctx.font = "bold 10px ui-monospace, Menlo, monospace"; ctx.textBaseline = "top";
+    ctx.fillStyle = "#9a94ad"; ctx.textAlign = "left"; ctx.fillText((li + 1) + "/" + LEVELS.length + "  " + LEVELS[li].name, 8, 6);
+    ctx.textAlign = "right"; ctx.fillText("Deaths " + deaths, W - 8, 6);
+    if (msgT > 0 && msg) { ctx.textAlign = "center"; ctx.fillStyle = "#f4f1fa"; ctx.font = "bold 14px ui-monospace, Menlo, monospace"; ctx.fillText(msg, W / 2, 40); }
+    if (bannerT > 0 && mode === "play") { ctx.textAlign = "center"; ctx.fillStyle = "rgba(244,241,250," + Math.min(1, bannerT) + ")"; ctx.font = "bold 18px ui-monospace, Menlo, monospace"; ctx.fillText(LEVELS[li].name, W / 2, 70); }
+  }
+
+  /* ---------- Loop & sizing ---------- */
+  function resize() {
+    var vw = window.innerWidth, vh = window.innerHeight, scale = Math.min(vw / W, vh / H);
+    var d = Math.min(window.devicePixelRatio || 1, 2);
+    cv.style.width = W * scale + "px"; cv.style.height = H * scale + "px";
+    cv.width = Math.round(W * scale * d); cv.height = Math.round(H * scale * d);
+    ctx.setTransform(scale * d, 0, 0, scale * d, 0, 0); ctx.imageSmoothingEnabled = false;
+  }
+  window.addEventListener("resize", resize);
+  var last = performance.now(), paused = false;
+  function frame(t) {
+    var dt = Math.min((t - last) / 1000, 1 / 30); last = t;
+    if (!paused) update(dt);
+    draw(); requestAnimationFrame(frame);
+  }
+
+  /* ---------- Input ---------- */
+  function jump() { if (p) p.buf = 0.1; }
+  function bind(id, on, off) {
+    var el = $(id);
+    el.addEventListener("pointerdown", function (e) { e.preventDefault(); el.classList.add("on"); on(); });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (n) { el.addEventListener(n, function () { el.classList.remove("on"); off(); }); });
+    el.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  }
+  bind("bL", function () { input.l = true; }, function () { input.l = false; });
+  bind("bR", function () { input.r = true; }, function () { input.r = false; });
+  bind("bJ", jump, function () {});
+  var KEYS = { ArrowLeft: "l", KeyA: "l", ArrowRight: "r", KeyD: "r" };
+  window.addEventListener("keydown", function (e) {
+    if (KEYS[e.code]) { input[KEYS[e.code]] = true; e.preventDefault(); }
+    else if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") { if (!e.repeat) jump(); e.preventDefault(); }
+    else if (e.code === "KeyR" && mode === "play") { die(); }
+  });
+  window.addEventListener("keyup", function (e) { if (KEYS[e.code]) input[KEYS[e.code]] = false; });
+  window.addEventListener("blur", function () { input.l = input.r = false; });
+
+  function startAt(i) { $("menu").hidden = true; $("end").hidden = true; load(i); }
+  $("play").addEventListener("click", function () { deaths = 0; startAt(0); });
+  $("cont").addEventListener("click", function () { startAt(Math.min(best, LEVELS.length - 1)); });
+  $("again").addEventListener("click", function () { deaths = 0; startAt(0); });
+  if (best > 0 && best < LEVELS.length) $("cont").hidden = false;
+
+  // Test hook: lets a headless bot step the simulation deterministically.
+  window.__trust = {
+    reset: function (i) { paused = true; deaths = 0; $("menu").hidden = true; load(i); bannerT = 0; },
+    step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y }; }
+  };
+  resize(); load(0); mode = "menu"; requestAnimationFrame(frame);
 })();
 </script>
-</body></html>
+</body>
+</html>

@@ -1,4 +1,4 @@
-package com.soclose.game;
+package com.trustissues.game;
 
 import com.getcapacitor.BridgeActivity;
 
