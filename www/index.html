@@ -15,20 +15,22 @@
   --orange-d: #c76f1a;
   --green: #5fbf4a;
   --green-d: #3b8f2e;
+  --b: clamp(60px, 20vh, 92px);
   --font: "Baloo 2", "Arial Rounded MT Bold", ui-rounded, "Trebuchet MS", system-ui, sans-serif;
   color-scheme: light;
 }
 html, body { height: 100%; margin: 0; overflow: hidden; background: var(--sky); color: var(--ink); font-family: var(--font); -webkit-user-select: none; user-select: none; touch-action: none; -webkit-touch-callout: none; }
-#wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+#wrap { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 canvas { display: block; }
-.pad { position: fixed; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; }
-.pad.l { left: calc(16px + env(safe-area-inset-left, 0px)); }
-.pad.r { right: calc(16px + env(safe-area-inset-right, 0px)); }
-.pad button { width: 64px; height: 64px; border-radius: 50%; border: 3px solid rgba(74,47,32,.6); background: rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; padding: 0; touch-action: none; box-shadow: 0 4px 0 rgba(74,47,32,.35); }
-.pad button svg { width: 28px; height: 28px; fill: var(--ink); pointer-events: none; }
+.pad { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 12px; }
+.pad.l { left: calc(14px + env(safe-area-inset-left, 0px)); }
+.pad.r { right: calc(14px + env(safe-area-inset-right, 0px)); }
+.nopad .pad { visibility: hidden; }
+.pad button { width: var(--b); height: var(--b); border-radius: 50%; border: 3px solid rgba(74,47,32,.6); background: rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; padding: 0; touch-action: none; box-shadow: 0 4px 0 rgba(74,47,32,.35); }
+.pad button svg { width: calc(var(--b) * .43); height: calc(var(--b) * .43); fill: var(--ink); pointer-events: none; }
 .pad button.on { transform: translateY(3px); box-shadow: 0 1px 0 rgba(74,47,32,.35); background: rgba(255,159,67,.85); }
-.pad button.jump { width: 84px; height: 84px; background: rgba(255,159,67,.7); }
-.pad button.jump svg { width: 38px; height: 38px; }
+.pad button.jump { width: calc(var(--b) * 1.18); height: calc(var(--b) * 1.18); background: rgba(255,159,67,.7); }
+.pad button.jump svg { width: calc(var(--b) * .54); height: calc(var(--b) * .54); }
 .screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(60,120,180,.35); overflow: auto; }
 .card { background: var(--paper); border: 4px solid var(--ink); border-radius: 22px; padding: 20px 26px 22px; box-shadow: 0 8px 0 rgba(74,47,32,.35); display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: min(400px, 100%); box-sizing: border-box; text-align: center; }
 .card h1 { margin: 0; font-size: 44px; line-height: .95; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; color: #fff; -webkit-text-stroke: 7px var(--ink); paint-order: stroke fill; text-shadow: 0 5px 0 var(--ink); }
@@ -42,14 +44,14 @@ canvas { display: block; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
 </head>
-<body>
+<body class="nopad">
 <div id="wrap"><canvas id="c"></canvas></div>
 
-<div class="pad l" id="padL" hidden>
+<div class="pad l" id="padL">
   <button id="bL" aria-label="Move left"><svg viewBox="0 0 24 24"><path d="M16 3 6 12l10 9z"/></svg></button>
   <button id="bR" aria-label="Move right"><svg viewBox="0 0 24 24"><path d="M8 3l10 9-10 9z"/></svg></button>
 </div>
-<div class="pad r" id="padR" hidden><button id="bJ" class="jump" aria-label="Jump"><svg viewBox="0 0 24 24"><path d="M12 3 3 14h6v7h6v-7h6z"/></svg></button></div>
+<div class="pad r" id="padR"><button id="bJ" class="jump" aria-label="Jump"><svg viewBox="0 0 24 24"><path d="M12 3 3 14h6v7h6v-7h6z"/></svg></button></div>
 
 <div class="screen" id="menu">
   <div class="card">
@@ -72,6 +74,7 @@ canvas { display: block; }
 
 <script>
 (function () {
+  document.body.classList.add("nopad");
   var T = 16, COLS = 30, ROWS = 17, W = COLS * T, H = ROWS * T;
   var SPEED = 105, JUMP = 345, GRAV = 900;
 
@@ -128,6 +131,66 @@ canvas { display: block; }
       L.set(8, 14, "Q"); L.set(10, 14, "H");
       L.row(14, 20, 21, "^"); L.set(24, 14, "Z");
       L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Boing", function (L) {
+      L.floor(0, 29); L.set(6, 14, "B"); L.row(9, 10, 13, "#"); L.set(19, 14, "B"); L.row(7, 24, 29, "#"); L.row(4, 17, 21, "v");
+      L.set(2, 14, "P"); L.set(28, 6, "D");
+    }),
+    level("Blink", function (L) {
+      L.floor(0, 4); L.floor(28, 29);
+      L.set(9, 14, "T"); L.set(14, 14, "t"); L.set(19, 14, "T"); L.set(24, 14, "t");
+      L.set(2, 14, "P"); L.set(29, 14, "D");
+    }),
+    level("Rhythm", function (L) {
+      L.floor(0, 29);
+      L.row(10, 7, 10, "#"); L.row(11, 8, 9, "v"); L.row(14, 8, 9, "A");
+      L.row(10, 13, 16, "#"); L.row(11, 14, 15, "v"); L.row(14, 14, 15, "a");
+      L.row(10, 19, 22, "#"); L.row(11, 20, 21, "v"); L.row(14, 20, 21, "A");
+      L.set(2, 14, "P"); L.set(27, 14, "D");
+    }),
+    level("Fake friends", function (L) {
+      L.floor(0, 29); L.set(8, 14, "Q"); L.set(14, 14, "Q"); L.fake(17, 19); L.set(22, 14, "H"); L.set(25, 14, "Q");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Ghost stairs", function (L) {
+      L.floor(0, 29);
+      L.set(6, 13, "G"); L.set(9, 11, "G"); L.set(12, 9, "G"); L.set(15, 7, "G");
+      L.row(5, 19, 29, "#"); L.set(23, 4, "H");
+      L.set(2, 14, "P"); L.set(28, 4, "D");
+    }),
+    level("Rain check", function (L) {
+      L.floor(0, 29);
+      L.set(8, 10, "C"); L.set(12, 10, "C"); L.set(16, 10, "C"); L.set(20, 10, "C"); L.set(24, 10, "C");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Flip flop", function (L) {
+      L.floor(0, 6); L.floor(10, 15); L.floor(19, 24); L.floor(28, 29);
+      L.set(3, 14, "Z"); L.set(12, 14, "Z"); L.set(21, 14, "Z");
+      L.set(2, 14, "P"); L.set(29, 14, "D");
+    }),
+    level("Hot stones", function (L) {
+      L.floor(0, 4); L.set(9, 14, "T"); L.set(14, 14, "t"); L.floor(19, 29); L.row(14, 21, 22, "A"); L.row(11, 20, 23, "#"); L.row(12, 21, 22, "v");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Spike alley", function (L) {
+      L.floor(0, 29); L.row(14, 6, 8, "^"); L.row(14, 12, 13, "X"); L.set(15, 14, "H"); L.row(14, 18, 19, "^"); L.set(21, 14, "H"); L.set(22, 14, "X");
+      L.set(2, 14, "P"); L.set(26, 14, "D");
+    }),
+    level("Elevator", function (L) {
+      L.floor(0, 29); L.set(6, 14, "B"); L.row(8, 10, 13, "#"); L.set(12, 7, "B");
+      L.row(4, 17, 22, "#"); L.row(4, 19, 20, "F");
+      L.set(2, 14, "P"); L.set(21, 3, "D");
+    }),
+    level("Trust no one", function (L) {
+      L.floor(0, 29); L.set(5, 14, "Q"); L.fake(9, 10); L.row(14, 13, 14, "^"); L.set(17, 14, "H"); L.set(20, 14, "Z");
+      L.set(26, 14, "Q");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("The end?", function (L) {
+      L.floor(0, 4); L.set(7, 13, "G"); L.set(10, 13, "G"); L.floor(13, 29);
+      L.set(15, 14, "Q"); L.set(17, 14, "H"); L.row(14, 20, 21, "^"); L.set(23, 14, "Z"); L.set(24, 14, "B");
+      L.row(8, 26, 29, "#");
+      L.set(2, 14, "P"); L.set(28, 7, "D");
     })
   ];
 
@@ -181,8 +244,13 @@ canvas { display: block; }
   function solidAt(c, r) {
     if (c < 0 || c >= COLS) return true;
     if (r < 0 || r >= ROWS) return false;
-    var ch = g[r][c]; return ch === "#" || ch === "F" || ch === "G" || ch === "C";
+    var ch = g[r][c];
+    if (ch === "#" || ch === "F" || ch === "G" || ch === "C" || ch === "B") return true;
+    if (ch === "T") return (tick % 2.4) < 1.2;
+    if (ch === "t") return (tick % 2.4) >= 1.2;
+    return false;
   }
+  function spikeOn(ch) { return ch === "A" ? (tick % 1.6) < 0.8 : (tick % 1.6) >= 0.8; }
   function hitSolid(x, y, w, h) {
     var c1 = Math.floor(x / T), c2 = Math.floor((x + w - 0.001) / T), r1 = Math.floor(y / T), r2 = Math.floor((y + h - 0.001) / T);
     for (var r = r1; r <= r2; r++) for (var c = c1; c <= c2; c++) if (solidAt(c, r)) return { c: c, r: r };
@@ -206,7 +274,7 @@ canvas { display: block; }
     if (li + 1 > best) { best = li + 1; try { localStorage.setItem("trust-best", best); } catch (e) {} }
     if (li + 1 >= LEVELS.length) {
       mode = "end"; $("endText").textContent = "All " + LEVELS.length + " levels done. Deaths: " + deaths + ". Nothing was ever your fault.";
-      $("end").hidden = false; $("padL").hidden = true; $("padR").hidden = true;
+      $("end").hidden = false; document.body.classList.add("nopad");
     } else load(li + 1);
   }
 
@@ -214,7 +282,7 @@ canvas { display: block; }
     tick += dt;
     if (bannerT > 0) bannerT -= dt;
     if (msgT > 0) msgT -= dt;
-    var i, c, r, h;
+    var i, c, r, h, ch;
     for (i = particles.length - 1; i >= 0; i--) { var q = particles[i]; q.t -= dt; q.vy += 700 * dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.t <= 0) particles.splice(i, 1); }
     if (mode === "dead") {
       deadT -= dt; ring += dt;
@@ -235,7 +303,12 @@ canvas { display: block; }
     var preVy = p.vy;
     p.y += p.vy * dt; p.ground = false;
     h = hitSolid(p.x, p.y, p.w, p.h);
-    if (h) { if (p.vy > 0) { p.y = h.r * T - p.h; p.ground = true; p.coy = 0.08; } else p.y = (h.r + 1) * T; p.vy = 0; }
+    if (h) {
+      if (p.vy > 0) {
+        p.y = h.r * T - p.h; p.ground = true; p.coy = 0.08; p.vy = 0;
+        if (g[h.r][h.c] === "B") { p.vy = -540; p.ground = false; p.coy = 0; p.squash = 0.12; beep(330, 0.08, "triangle"); setTimeout(function () { beep(660, 0.1, "triangle"); }, 70); }
+      } else { p.y = (h.r + 1) * T; p.vy = 0; }
+    }
     if (p.ground && !p.wasGround && preVy > 140) p.squash = 0.12;
     p.wasGround = p.ground;
     if (p.squash > 0) p.squash -= dt;
@@ -287,12 +360,16 @@ canvas { display: block; }
       if (f.y > H + 20 || hitSolid(f.x + 2, f.y + 2, T - 4, T - 4)) { falling.splice(i, 1); beep(90, 0.1, "triangle"); }
     }
     // reverse-controls zones
-    for (i = 0; i < zs.length; i++) if (!reversed && overlap(p.x, p.y, p.w, p.h, zs[i].c * T, zs[i].r * T - 8, T, T + 8)) { reversed = true; msg = "Huh?"; msgT = 1.2; beep(200, 0.2, "triangle"); }
+    for (i = 0; i < zs.length; i++) if (!zs[i].done && overlap(p.x, p.y, p.w, p.h, zs[i].c * T, zs[i].r * T - 8, T, T + 8)) { zs[i].done = true; reversed = !reversed; msg = reversed ? "Huh?" : "Phew."; msgT = 1.2; beep(200, 0.2, "triangle"); }
 
     // spikes (real ones only; X is a harmless fake)
     for (r = Math.floor(p.y / T); r <= Math.floor((p.y + p.h - 0.001) / T); r++)
       for (c = c1; c <= c2; c++)
-        if (g[r] && g[r][c] === "^" && overlap(p.x, p.y, p.w, p.h, c * T + 3, r * T + 7, 10, 9)) die();
+        if (g[r]) {
+          ch = g[r][c];
+          if ((ch === "^" || ((ch === "A" || ch === "a") && spikeOn(ch))) && overlap(p.x, p.y, p.w, p.h, c * T + 3, r * T + 7, 10, 9)) die();
+          else if (ch === "v" && overlap(p.x, p.y, p.w, p.h, c * T + 3, r * T, 10, 9)) die();
+        }
 
     // doors
     for (i = 0; i < doors.length && mode === "play"; i++) {
@@ -331,8 +408,9 @@ canvas { display: block; }
     if (!lf) ctx.fillRect(x, y, 1, T);
     if (!rt) ctx.fillRect(x + T - 1, y, 1, T);
   }
-  function spike(x, y, k) {
-    ctx.save(); ctx.translate(x, y + T); ctx.scale(1, k === undefined ? 1 : k);
+  function spike(x, y, k, flip) {
+    ctx.save();
+    if (flip) { ctx.translate(x, y); ctx.scale(1, -(k === undefined ? 1 : k)); } else { ctx.translate(x, y + T); ctx.scale(1, k === undefined ? 1 : k); }
     for (var i = 0; i < 2; i++) {
       var bx = i * 8;
       ctx.beginPath(); ctx.moveTo(bx + 0.5, 0); ctx.lineTo(bx + 4, -10); ctx.lineTo(bx + 7.5, 0); ctx.closePath();
@@ -340,6 +418,23 @@ canvas { display: block; }
       ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.moveTo(bx + 2, -1); ctx.lineTo(bx + 3.8, -7.5); ctx.lineTo(bx + 3.5, -1); ctx.fill();
     }
     ctx.restore();
+  }
+  function pad(x, y) {
+    ctx.fillStyle = "#6b7280"; ctx.fillRect(x + 2, y + 13, 12, 3);
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x + 4, y + 13); ctx.lineTo(x + 12, y + 11); ctx.lineTo(x + 4, y + 9); ctx.lineTo(x + 12, y + 7.5); ctx.stroke();
+    ctx.fillStyle = "#ff6b81"; rr(x + 1, y + 4.5, 14, 3.5, 1.5); ctx.fill(); ctx.lineWidth = 1; ctx.stroke();
+  }
+  function blink(x, y, on, warn) {
+    if (on) {
+      ctx.globalAlpha = warn ? (Math.floor(tick * 20) % 2 ? 0.35 : 0.9) : 1;
+      ctx.fillStyle = "#7fd1ff"; ctx.fillRect(x, y, T, T);
+      ctx.fillStyle = "rgba(255,255,255,.55)"; for (var i = -1; i < 3; i++) { ctx.beginPath(); ctx.moveTo(x + i * 6, y + T); ctx.lineTo(x + i * 6 + 3, y + T); ctx.lineTo(x + i * 6 + 3 + T, y); ctx.lineTo(x + i * 6 + T, y); ctx.fill(); }
+      ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, T - 1, T - 1);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.globalAlpha = warn ? 0.45 : 0.18; ctx.fillStyle = "#7fd1ff"; ctx.fillRect(x + 1, y + 1, T - 2, T - 2);
+      ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.setLineDash([2, 2]); ctx.strokeRect(x + 1.5, y + 1.5, T - 3, T - 3); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
   }
   function door(x, y) {
     ctx.save(); ctx.translate(x + 2, y);
@@ -652,6 +747,14 @@ canvas { display: block; }
         ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.setLineDash([2, 2]); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
       }
       else if (ch === "X") spike(x, y);
+      else if (ch === "B") pad(x, y);
+      else if (ch === "v") spike(x, y, 1, true);
+      else if (ch === "T" || ch === "t") { var ph = tick % 2.4, onNow = ch === "T" ? ph < 1.2 : ph >= 1.2; blink(x, y, onNow, (1.2 - (ph % 1.2)) < 0.3); }
+      else if (ch === "A" || ch === "a") {
+        var so = spikeOn(ch), left = 0.8 - (tick % 0.8);
+        ctx.fillStyle = INK; ctx.fillRect(x + 2, y + 14, 12, 2);
+        spike(x, y, so ? 1 : (left < 0.3 ? 0.45 : 0.12));
+      }
       else if (ch === "^") {
         k = popped[r + "," + c]; if (k !== undefined) { k = Math.min(1, (tick - k) / 0.12); k = k < 1 ? 1 + 0.25 * Math.sin(k * Math.PI) * (1 - k) + (k - 1) * 0 : 1; k = Math.max(0.05, Math.min(1.15, (tick - popped[r + "," + c]) / 0.1)); if (k > 1) k = 1; }
         spike(x, y, k);
@@ -671,7 +774,11 @@ canvas { display: block; }
 
   /* ---------- Loop & sizing ---------- */
   function resize() {
-    var vw = window.innerWidth, vh = window.innerHeight, scale = Math.min(vw / W, vh / H);
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var pl = $("padL").getBoundingClientRect(), pr = $("padR").getBoundingClientRect();
+    var left = pl.width ? pl.right + 10 : 0, right = pr.width ? vw - pr.left + 10 : 0;
+    $("wrap").style.paddingLeft = left + "px"; $("wrap").style.paddingRight = right + "px";
+    var scale = Math.min((vw - left - right) / W, vh / H);
     var d = Math.min(window.devicePixelRatio || 1, 2);
     cv.style.width = W * scale + "px"; cv.style.height = H * scale + "px";
     cv.width = Math.round(W * scale * d); cv.height = Math.round(H * scale * d);
@@ -687,15 +794,33 @@ canvas { display: block; }
 
   /* ---------- Input ---------- */
   function jump() { if (p) p.buf = 0.1; }
-  function bind(id, on, off) {
-    var el = $(id);
-    el.addEventListener("pointerdown", function (e) { e.preventDefault(); el.classList.add("on"); on(); });
-    ["pointerup", "pointercancel", "pointerleave"].forEach(function (n) { el.addEventListener(n, function () { el.classList.remove("on"); off(); }); });
-    el.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  // Touch pads use their own hit-testing: the zone reaches well above each button, so a tap above it still presses it.
+  var BTNS = [["L", "bL", 20, 6], ["R", "bR", 6, 20], ["J", "bJ", 20, 20]], held = {};
+  function padHit(x, y) {
+    if (document.body.classList.contains("nopad")) return null;
+    for (var i = 0; i < BTNS.length; i++) {
+      var r = $(BTNS[i][1]).getBoundingClientRect();
+      if (x >= r.left - BTNS[i][2] && x <= r.right + BTNS[i][3] && y >= r.top - 120 && y <= r.bottom + 40) return BTNS[i][0];
+    }
+    return null;
   }
-  bind("bL", function () { input.l = true; }, function () { input.l = false; });
-  bind("bR", function () { input.r = true; }, function () { input.r = false; });
-  bind("bJ", jump, function () {});
+  function applyHeld() {
+    var on = {}, id; for (id in held) if (held[id]) on[held[id]] = true;
+    input.l = !!on.L; input.r = !!on.R;
+    BTNS.forEach(function (b) { $(b[1]).classList.toggle("on", !!on[b[0]]); });
+  }
+  window.addEventListener("pointerdown", function (e) {
+    var k = padHit(e.clientX, e.clientY); if (!k) return;
+    e.preventDefault(); held[e.pointerId] = k; if (k === "J") jump(); applyHeld();
+  });
+  window.addEventListener("pointermove", function (e) {
+    if (!(e.pointerId in held)) return;
+    var k = padHit(e.clientX, e.clientY);
+    if (k !== held[e.pointerId]) { held[e.pointerId] = k; if (k === "J") jump(); applyHeld(); }
+  });
+  function release(e) { if (e.pointerId in held) { delete held[e.pointerId]; applyHeld(); } }
+  window.addEventListener("pointerup", release); window.addEventListener("pointercancel", release);
+  window.addEventListener("contextmenu", function (e) { e.preventDefault(); });
   var KEYS = { ArrowLeft: "l", KeyA: "l", ArrowRight: "r", KeyD: "r" };
   window.addEventListener("keydown", function (e) {
     if (KEYS[e.code]) { input[KEYS[e.code]] = true; e.preventDefault(); }
@@ -703,9 +828,9 @@ canvas { display: block; }
     else if (e.code === "KeyR" && mode === "play") { die(); }
   });
   window.addEventListener("keyup", function (e) { if (KEYS[e.code]) input[KEYS[e.code]] = false; });
-  window.addEventListener("blur", function () { input.l = input.r = false; });
+  window.addEventListener("blur", function () { held = {}; applyHeld(); });
 
-  function startAt(i) { $("menu").hidden = true; $("end").hidden = true; $("padL").hidden = false; $("padR").hidden = false; load(i); }
+  function startAt(i) { $("menu").hidden = true; $("end").hidden = true; document.body.classList.remove("nopad"); resize(); load(i); }
   $("play").addEventListener("click", function () { deaths = 0; startAt(0); });
   $("cont").addEventListener("click", function () { startAt(Math.min(best, LEVELS.length - 1)); });
   $("again").addEventListener("click", function () { deaths = 0; startAt(0); });
@@ -714,7 +839,7 @@ canvas { display: block; }
   // Test hook: lets a headless bot step the simulation deterministically.
   window.__trust = {
     reset: function (i) { paused = true; deaths = 0; $("menu").hidden = true; load(i); bannerT = 0; },
-    forceDeath: function (i) { bag = [i]; }, step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y }; }
+    forceDeath: function (i) { bag = [i]; }, pos: function () { return p ? p.x : -1; }, step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y, tick: tick, rev: reversed, ground: p.ground }; }
   };
   resize(); load(0); mode = "menu"; requestAnimationFrame(frame);
 })();
