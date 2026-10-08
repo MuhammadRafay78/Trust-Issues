@@ -191,6 +191,97 @@ canvas { display: block; }
       L.set(15, 14, "Q"); L.set(17, 14, "H"); L.row(14, 20, 21, "^"); L.set(23, 14, "Z"); L.set(24, 14, "B");
       L.row(8, 26, 29, "#");
       L.set(2, 14, "P"); L.set(28, 7, "D");
+    }),
+    level("Deja vu", function (L) {
+      L.floor(0, 29); L.fake(6, 7); L.row(14, 10, 11, "X"); L.set(13, 14, "H"); L.fake(16, 18); L.set(21, 14, "H"); L.set(24, 14, "Q");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Pogo", function (L) {
+      L.floor(0, 29); L.set(5, 14, "B"); L.row(8, 8, 11, "#"); L.set(14, 14, "B"); L.row(6, 18, 21, "#"); L.set(21, 5, "B"); L.row(2, 25, 29, "#");
+      L.set(2, 14, "P"); L.set(28, 1, "D");
+    }),
+    level("Peekaboo", function (L) {
+      L.floor(0, 29); L.row(12, 9, 9, "G"); L.row(13, 9, 9, "G"); L.row(14, 9, 9, "G"); L.set(12, 14, "H");
+      L.row(12, 16, 16, "G"); L.row(13, 16, 16, "G"); L.row(14, 16, 16, "G"); L.set(20, 10, "C"); L.set(24, 14, "Q");
+      L.set(2, 14, "P"); L.set(27, 14, "D");
+    }),
+    level("Mirror mirror", function (L) {
+      L.floor(0, 12); L.floor(16, 29); L.set(3, 14, "Z"); L.set(9, 14, "Z"); L.set(18, 14, "Z"); L.row(14, 22, 23, "^");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Metronome", function (L) {
+      L.floor(0, 29);
+      L.row(10, 7, 11, "#"); L.row(11, 8, 10, "v"); L.row(14, 8, 10, "A");
+      L.row(10, 14, 18, "#"); L.row(11, 15, 17, "v"); L.row(14, 15, 17, "a");
+      L.row(10, 21, 25, "#"); L.row(11, 22, 24, "v"); L.row(14, 22, 24, "A");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Hail", function (L) {
+      L.floor(0, 29); L.set(6, 10, "C"); L.fake(9, 10); L.set(12, 10, "C"); L.fake(17, 18); L.set(20, 10, "C"); L.set(25, 10, "C");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Springboard", function (L) {
+      L.floor(0, 29); L.row(14, 8, 9, "A"); L.set(12, 14, "B"); L.row(9, 15, 18, "#"); L.set(22, 14, "B"); L.row(8, 25, 29, "#");
+      L.set(2, 14, "P"); L.set(28, 7, "D");
+    }),
+    level("Down we go", function (L) {
+      L.row(5, 0, 5, "#"); L.row(6, 0, 5, "#"); L.row(8, 8, 11, "F"); L.row(11, 14, 17, "#"); L.set(15, 10, "H"); L.row(13, 19, 22, "F"); L.floor(24, 29);
+      L.set(2, 4, "P"); L.set(28, 14, "D");
+    }),
+    level("Fake it", function (L) {
+      L.floor(0, 29); L.set(6, 14, "Q"); L.set(10, 14, "Q"); L.set(14, 14, "Q");
+      L.row(12, 26, 26, "G"); L.row(13, 26, 26, "G"); L.row(14, 26, 26, "G"); L.set(23, 14, "Q");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Staircase of lies", function (L) {
+      L.floor(0, 29); L.row(13, 6, 8, "#"); L.row(11, 10, 12, "F"); L.row(9, 14, 16, "#"); L.set(15, 8, "H"); L.row(7, 18, 20, "F"); L.row(5, 22, 29, "#");
+      L.set(2, 14, "P"); L.set(27, 4, "D");
+    }),
+    level("Blink bridge", function (L) {
+      L.floor(0, 4); L.floor(28, 29);
+      L.set(9, 13, "T"); L.set(14, 13, "t"); L.set(19, 13, "T"); L.set(24, 13, "t");
+      L.set(2, 14, "P"); L.set(29, 14, "D");
+    }),
+    level("Kill switch", function (L) {
+      L.floor(0, 29); L.set(4, 14, "Z"); L.row(14, 8, 9, "^"); L.set(11, 14, "Z"); L.set(12, 14, "B"); L.row(10, 15, 17, "#"); L.row(14, 21, 22, "A");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Echo chamber", function (L) {
+      L.floor(0, 29); L.row(14, 5, 25, "^");
+      L.set(9, 13, "T"); L.set(14, 13, "t"); L.set(19, 13, "T"); L.set(24, 13, "t");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Hopscotch", function (L) {
+      L.floor(0, 29); L.set(8, 14, "H"); L.set(11, 14, "H"); L.set(14, 14, "H"); L.set(17, 14, "H"); L.set(20, 14, "H");
+      L.set(2, 14, "P"); L.set(26, 14, "D");
+    }),
+    level("Going up", function (L) {
+      L.floor(0, 29); L.set(4, 14, "B"); L.row(8, 8, 11, "#"); L.set(11, 7, "B"); L.row(3, 16, 19, "#"); L.row(3, 17, 18, "F");
+      L.set(2, 14, "P"); L.set(19, 2, "D");
+    }),
+    level("Gauntlet", function (L) {
+      L.floor(0, 29); L.set(4, 14, "Q"); L.fake(7, 8); L.row(14, 11, 12, "^"); L.set(15, 14, "H"); L.set(17, 14, "Z"); L.set(20, 10, "C");
+      L.row(14, 22, 23, "A"); L.set(26, 14, "Q");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Rematch", function (L) {
+      L.floor(0, 4); L.floor(28, 29); L.set(3, 14, "Z");
+      L.set(9, 13, "T"); L.set(14, 13, "t"); L.set(19, 13, "T"); L.set(24, 13, "t");
+      L.set(2, 14, "P"); L.set(29, 14, "D");
+    }),
+    level("Almost there", function (L) {
+      L.floor(0, 29); L.row(14, 5, 6, "^"); L.row(12, 9, 9, "G"); L.row(13, 9, 9, "G"); L.row(14, 9, 9, "G"); L.fake(12, 14); L.row(14, 17, 18, "^"); L.set(21, 14, "H");
+      L.set(22, 14, "B"); L.row(8, 24, 29, "#");
+      L.set(2, 14, "P"); L.set(28, 7, "D");
+    }),
+    level("So close", function (L) {
+      L.floor(0, 8); L.floor(12, 16); L.floor(20, 29); L.set(3, 14, "Z"); L.set(14, 14, "H"); L.set(21, 14, "Z"); L.row(14, 23, 24, "A"); L.set(27, 14, "Q");
+      L.set(2, 14, "P"); L.set(29, 14, "D");
+    }),
+    level("Final exam", function (L) {
+      L.floor(0, 29); L.set(4, 14, "Q"); L.fake(7, 8); L.set(11, 14, "H"); L.set(13, 14, "Z"); L.row(14, 16, 17, "^");
+      L.row(12, 20, 20, "G"); L.row(13, 20, 20, "G"); L.row(14, 20, 20, "G"); L.set(22, 14, "B"); L.row(8, 25, 29, "#"); L.row(8, 27, 28, "F");
+      L.set(2, 14, "P"); L.set(29, 7, "D");
     })
   ];
 
@@ -866,7 +957,12 @@ canvas { display: block; }
   // Test hook: lets a headless bot step the simulation deterministically.
   window.__trust = {
     reset: function (i) { paused = true; deaths = 0; $("menu").hidden = true; load(i); bannerT = 0; },
-    forceDeath: function (i) { bag = [i]; }, pos: function () { return p ? p.x : -1; }, step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y, tick: tick, rev: reversed, ground: p.ground }; }
+    forceDeath: function (i) { bag = [i]; },
+    count: function () { return LEVELS.length; },
+    snap: function () { return JSON.stringify([g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, popped, reversed, tick, mode, li]); },
+    restore: function (t) { var a = JSON.parse(t); g = a[0]; p = a[1]; doors = a[2]; hs = a[3]; cs = a[4]; zs = a[5]; ftimers = a[6]; shakes = a[7]; falling = a[8]; revealed = a[9]; popped = a[10]; reversed = a[11]; tick = a[12]; mode = a[13]; li = a[14]; particles = []; },
+    key: function () { return [Math.round(p.x / 3), Math.round(p.y / 3), Math.round(p.vy / 80), Math.round((tick % 4.8) * 10), reversed ? 1 : 0, Object.keys(ftimers).length, Object.keys(popped).length, falling.length, hs.filter(function (h) { return h.done; }).length, cs.filter(function (c) { return c.fired; }).length, doors.map(function (d) { return d.hopped ? 1 : 0; }).join(""), Object.keys(revealed).length, zs.filter(function (z) { return z.done; }).length].join(","); },
+    goal: function () { var d = doors.filter(function (q) { return q.kind === "D"; })[0], c = d.dest ? d.dest.c : d.c, r = d.dest ? d.dest.r : d.r; return { x: c * T + 8, y: r * T + 8 }; }, pos: function () { return p ? p.x : -1; }, step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y, tick: tick, rev: reversed, ground: p.ground }; }
   };
   resize(); load(0); mode = "menu"; requestAnimationFrame(frame);
 })();
