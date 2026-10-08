@@ -10,3 +10,6 @@ CI (`.github/workflows/build.yml`) builds a debug APK on every push to `main`. A
 Local: `npm ci && npx cap sync android && cd android && ./gradlew assembleDebug` (needs JDK 21 and the Android SDK).
 
 Package name `com.trustissues.game` is a placeholder. Change it before the first Play upload; it cannot change afterwards.
+
+## Store assets
+`store/` has the Play Store icon, feature graphic, screenshots and the full listing text (`store/listing.md`). `docs/privacy.html` is the privacy policy page (publish it with GitHub Pages: Settings > Pages > `main` / `/docs`).
