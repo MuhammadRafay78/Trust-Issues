@@ -40,6 +40,19 @@ canvas { display: block; }
 .btn.alt { background: var(--green); border-bottom-color: var(--green-d); }
 .btn:active { transform: translateY(3px); border-bottom-width: 3px; }
 .btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.card .col { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.btn.alt2 { background: #6c8cff; border-bottom-color: #4a62c4; }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.small { font-size: 16px; padding: 8px 18px 5px; }
+.card h1.small { font-size: 32px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 8px; width: min(520px, 78vw); max-height: 44vh; overflow: auto; padding: 4px; box-sizing: border-box; }
+.grid button { font: 800 16px var(--font); color: #fff; border: 0; border-bottom: 4px solid; border-radius: 10px; padding: 9px 0 6px; cursor: pointer; background: var(--green); border-bottom-color: var(--green-d); }
+.grid button.cur { background: var(--orange); border-bottom-color: var(--orange-d); }
+.grid button:disabled { background: #b9b2a6; border-bottom-color: #8f887c; cursor: default; opacity: .8; }
+.hudbtn { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: 44px; height: 44px; border-radius: 50%; border: 3px solid rgba(74,47,32,.75); background: rgba(255,248,232,.92); display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0; box-shadow: 0 3px 0 rgba(74,47,32,.35); cursor: pointer; }
+.hudbtn i { display: block; width: 5px; height: 16px; background: var(--ink); border-radius: 2px; }
+.hudbtn.skip { top: calc(62px + env(safe-area-inset-top, 0px)); width: auto; height: auto; border-radius: 14px; padding: 8px 16px 5px; font: 800 15px var(--font); color: #fff; background: #6c8cff; border: 0; border-bottom: 5px solid #4a62c4; box-shadow: none; }
+.nopad .hudbtn { display: none; }
 [hidden] { display: none !important; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap">
@@ -60,7 +73,31 @@ canvas { display: block; }
     <div class="row">
       <button id="play" class="btn">Play</button>
       <button id="cont" class="btn alt" hidden>Continue</button>
+      <button id="lvlBtn" class="btn alt2">Levels</button>
     </div>
+  </div>
+</div>
+
+<button id="pauseBtn" class="hudbtn" aria-label="Pause menu"><i></i><i></i></button>
+<button id="skipBtn" class="hudbtn skip" hidden>Skip level &rsaquo;</button>
+
+<div class="screen" id="pause" hidden>
+  <div class="card">
+    <h1>Paused</h1>
+    <div class="col">
+      <button id="resume" class="btn">Resume</button>
+      <button id="restart" class="btn alt">Restart level</button>
+      <button id="skip" class="btn alt2 small">Skip this level</button>
+      <button id="lvlBtn2" class="btn alt2 small">All levels</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="levels" hidden>
+  <div class="card">
+    <h1 class="small">Levels</h1>
+    <div id="lvGrid" class="grid"></div>
+    <button id="lvBack" class="btn alt small">Back</button>
   </div>
 </div>
 
@@ -297,7 +334,7 @@ canvas { display: block; }
   var mode = "menu", li = 0, deaths = 0, best = 0;
   var g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, popped, reversed, particles, ring, msg, msgT, deadT, bannerT, tick = 0;
   var input = { l: false, r: false }, audio;
-  var viewW = W, viewH = H, baseScale = 1, camX = 0, camY = 0;
+  var viewW = W, viewH = H, baseScale = 1, camX = 0, camY = 0, lvDeaths = 0, uiOpen = false, levelsFrom = "menu";
   try { best = +localStorage.getItem("trust-best") || 0; } catch (e) {}
 
   function beep(f, d, type) {
@@ -354,20 +391,24 @@ canvas { display: block; }
   var dstyle = 0, dX = 0, dY = 0;
   function die() {
     if (mode !== "play") return;
-    mode = "dead"; deadT = DUR; ring = 0; deaths++;
+    mode = "dead"; deadT = DUR; ring = 0; deaths++; lvDeaths++; if (lvDeaths >= 8) $("skipBtn").hidden = false;
     dstyle = nextStyle(); var D = DEATHS[dstyle];
     dX = p.x + p.w / 2; dY = Math.min(p.y + p.h, H - 2);
     msg = D.line; msgT = 1.3;
     if (D.parts) { var cols = D.partCols || ["#ff9f43", "#ffd08a", "#ffffff", "#ff6b81"]; for (var i = 0; i < D.parts; i++) particles.push({ x: dX, y: dY - 8, vx: (Math.random() - .5) * 240, vy: -Math.random() * 240, t: 0.7, col: cols[i % cols.length] }); }
     D.snd.forEach(function (n) { setTimeout(function () { beep(n[0], n[1], n[2]); }, n[3] || 0); });
   }
-  function win() {
-    beep(660, 0.1); setTimeout(function () { beep(990, 0.15); }, 110);
+  function enter(i) { lvDeaths = 0; $("skipBtn").hidden = true; load(i); }
+  function advance() {
     if (li + 1 > best) { best = li + 1; try { localStorage.setItem("trust-best", best); } catch (e) {} }
     if (li + 1 >= LEVELS.length) {
       mode = "end"; $("endText").textContent = "All " + LEVELS.length + " levels done. Deaths: " + deaths + ". Nothing was ever your fault.";
-      $("end").hidden = false; document.body.classList.add("nopad");
-    } else load(li + 1);
+      $("end").hidden = false; document.body.classList.add("nopad"); $("skipBtn").hidden = true;
+    } else enter(li + 1);
+  }
+  function win() {
+    beep(660, 0.1); setTimeout(function () { beep(990, 0.15); }, 110);
+    advance();
   }
 
   function update(dt) {
@@ -906,7 +947,7 @@ canvas { display: block; }
   var last = performance.now(), paused = false;
   function frame(t) {
     var dt = Math.min((t - last) / 1000, 1 / 30); last = t;
-    if (!paused) update(dt);
+    if (!paused && !uiOpen) update(dt);
     stepCam(dt); draw(); requestAnimationFrame(frame);
   }
 
@@ -915,7 +956,7 @@ canvas { display: block; }
   // Touch pads use their own hit-testing: the zone reaches well above each button, so a tap above it still presses it.
   var BTNS = [["L", "bL", 20, 6], ["R", "bR", 6, 20], ["J", "bJ", 20, 20]], held = {};
   function padHit(x, y) {
-    if (document.body.classList.contains("nopad")) return null;
+    if (uiOpen || document.body.classList.contains("nopad")) return null;
     for (var i = 0; i < BTNS.length; i++) {
       var r = $(BTNS[i][1]).getBoundingClientRect();
       if (x >= r.left - BTNS[i][2] && x <= r.right + BTNS[i][3] && y >= r.top - 120 && y <= r.bottom + 40) return BTNS[i][0];
@@ -948,13 +989,42 @@ canvas { display: block; }
   window.addEventListener("keyup", function (e) { if (KEYS[e.code]) input[KEYS[e.code]] = false; });
   window.addEventListener("blur", function () { held = {}; applyHeld(); });
 
-  function startAt(i) { $("menu").hidden = true; $("end").hidden = true; document.body.classList.remove("nopad"); resize(); load(i); }
+  function startAt(i) { $("menu").hidden = true; $("end").hidden = true; $("levels").hidden = true; $("pause").hidden = true; uiOpen = false; document.body.classList.remove("nopad"); resize(); enter(i); }
   $("play").addEventListener("click", function () { deaths = 0; startAt(0); });
   $("cont").addEventListener("click", function () { startAt(Math.min(best, LEVELS.length - 1)); });
   $("again").addEventListener("click", function () { deaths = 0; startAt(0); });
   if (best > 0 && best < LEVELS.length) $("cont").hidden = false;
 
   // Test hook: lets a headless bot step the simulation deterministically.
+  function openPause() {
+    if (uiOpen || (mode !== "play" && mode !== "dead")) return;
+    uiOpen = true; held = {}; applyHeld(); document.body.classList.add("nopad"); $("pause").hidden = false;
+    var can = lvDeaths >= 5; $("skip").disabled = !can;
+    $("skip").textContent = can ? "Skip this level" : "Skip unlocks after 5 deaths (" + lvDeaths + "/5)";
+  }
+  function closeMenus() { uiOpen = false; $("pause").hidden = true; $("levels").hidden = true; document.body.classList.remove("nopad"); }
+  function openLevels(from) {
+    levelsFrom = from; var grid = $("lvGrid"); grid.innerHTML = "";
+    var open = Math.min(best, LEVELS.length - 1);
+    LEVELS.forEach(function (lv, i) {
+      var b = document.createElement("button"); b.textContent = i + 1; b.title = lv.name;
+      if (i > open) b.disabled = true; else if (i === open) b.className = "cur";
+      b.addEventListener("click", function () { closeMenus(); startAt(i); });
+      grid.appendChild(b);
+    });
+    $("menu").hidden = true; $("pause").hidden = true; $("levels").hidden = false;
+    if (from === "menu") { uiOpen = false; }
+  }
+  $("pauseBtn").addEventListener("click", openPause);
+  $("resume").addEventListener("click", closeMenus);
+  $("restart").addEventListener("click", function () { closeMenus(); var keep = lvDeaths; enter(li); lvDeaths = keep; bannerT = 0; });
+  $("skip").addEventListener("click", function () { if (lvDeaths < 5) return; closeMenus(); advance(); });
+  $("skipBtn").addEventListener("click", function () { advance(); });
+  $("lvlBtn").addEventListener("click", function () { openLevels("menu"); });
+  $("lvlBtn2").addEventListener("click", function () { openLevels("pause"); });
+  $("lvBack").addEventListener("click", function () { $("levels").hidden = true; if (levelsFrom === "menu") $("menu").hidden = false; else $("pause").hidden = false; });
+  window.addEventListener("keydown", function (e) { if (e.code === "Escape") { if (uiOpen && !$("pause").hidden) closeMenus(); else openPause(); } });
+
   window.__trust = {
     reset: function (i) { paused = true; deaths = 0; $("menu").hidden = true; load(i); bannerT = 0; },
     forceDeath: function (i) { bag = [i]; },
