@@ -3,3 +3,10 @@ android/build/
 android/app/build/
 android/.gradle/
 android/local.properties
+
+# Never commit signing keys
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.b64
