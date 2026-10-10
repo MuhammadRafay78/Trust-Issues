@@ -63,6 +63,13 @@ canvas { display: block; }
   .grid { max-height: min(300px, 59vh); }
   .grid button { padding: 6px 0 4px; font-size: 15px; }
 }
+.card canvas.art { width: 130px; height: 55px; margin: -4px 0 -2px; }
+.card canvas.art.wide { width: 200px; height: 84px; }
+.card p.stat { font-size: 13px; color: var(--orange-d); }
+.grid .chap { grid-column: 1 / -1; text-align: left; font: 800 13px var(--font); color: var(--soft); margin: 4px 2px 0; }
+.grid .chap:first-child { margin-top: 0; }
+.grid button small { display: block; font-size: 9px; line-height: 1; letter-spacing: 1px; margin-top: 1px; color: #ffe27a; text-shadow: 0 1px 0 rgba(0,0,0,.3); }
+.grid button:disabled small { color: transparent; text-shadow: none; }
 [hidden] { display: none !important; }
 </style>
 
@@ -79,12 +86,14 @@ canvas { display: block; }
 <div class="screen" id="menu">
   <div class="card">
     <h1>Trust<br>Issues</h1>
+    <canvas id="menuArt" class="art" width="260" height="110"></canvas>
     <p>Reach the door. Floors, spikes, ceilings and doors may be lying to you. Dying is how you learn.</p>
     <div class="row">
       <button id="play" class="btn">Play</button>
       <button id="cont" class="btn alt" hidden>Continue</button>
       <button id="lvlBtn" class="btn alt2">Levels</button>
     </div>
+    <p id="menuStats" class="stat" hidden></p>
   </div>
 </div>
 
@@ -114,7 +123,9 @@ canvas { display: block; }
 <div class="screen" id="end" hidden>
   <div class="card">
     <h1>You<br>made it</h1>
-    <p id="endText"></p>
+    <canvas id="endArt" class="art wide" width="400" height="168"></canvas>
+    <p id="endStory"></p>
+    <p id="endText" class="stat"></p>
     <button id="again" class="btn">Play again</button>
   </div>
 </div>
@@ -127,17 +138,26 @@ canvas { display: block; }
 
   /* ---------- Levels ---------- */
   function grid() { var g = []; for (var r = 0; r < ROWS; r++) g.push(new Array(COLS + 1).join(".").split("")); return g; }
-  function level(name, build) {
-    var g = grid();
+  function level(name, build, tip) {
+    var g = grid(), crit = [];
     var api = {
+      // a patrolling prickle: starts at tile (c, r), sweeps `range` tiles right and back every `period` seconds
+      critter: function (c, r, range, period, phase) { crit.push({ c: c, r: r, range: range, period: period, ph: phase || 0 }); },
       set: function (c, r, ch) { g[r][c] = ch; },
       row: function (r, c1, c2, ch) { for (var c = c1; c <= c2; c++) g[r][c] = ch; },
       floor: function (c1, c2) { api.row(15, c1, c2, "#"); api.row(16, c1, c2, "#"); },
       fake: function (c1, c2) { api.row(15, c1, c2, "F"); api.row(16, c1, c2, "F"); }
     };
     build(api);
-    return { name: name, g: g };
+    return { name: name, g: g, crit: crit, tip: tip || "" };
   }
+
+  var CHAPTERS = [
+    { from: 0, name: "Cozy Meadow", sub: "Nothing could possibly go wrong." },
+    { from: 20, name: "Sneaky Hills", sub: "The meadow was just being nice." },
+    { from: 40, name: "Heartbreak Peak", sub: "Hard mode. Cute, but hard." }
+  ];
+  function chapterOf(i) { var k = 0; CHAPTERS.forEach(function (c, n) { if (i >= c.from) k = n; }); return k; }
 
   var LEVELS = [
     level("Easy, right?", function (L) {
@@ -329,7 +349,79 @@ canvas { display: block; }
       L.floor(0, 29); L.set(4, 14, "Q"); L.fake(7, 8); L.set(11, 14, "H"); L.set(13, 14, "Z"); L.row(14, 16, 17, "^");
       L.row(12, 20, 20, "G"); L.row(13, 20, 20, "G"); L.row(14, 20, 20, "G"); L.set(22, 14, "B"); L.row(8, 25, 29, "#"); L.row(8, 27, 28, "F");
       L.set(2, 14, "P"); L.set(29, 7, "D");
-    })
+    }),
+    level("Prickle patrol", function (L) {
+      L.floor(0, 29); L.critter(8, 14, 6, 2.4, 0); L.row(14, 15, 16, "^"); L.critter(17, 14, 6, 2.4, 0.5);
+      L.row(11, 11, 13, "#"); L.set(12, 10, "o");
+      L.set(2, 14, "P"); L.set(27, 14, "D");
+    }, "Prickles patrol. They look cute. They are not."),
+    level("Mind your head", function (L) {
+      L.floor(0, 29); L.row(11, 6, 9, "v"); L.row(11, 14, 17, "v"); L.row(11, 22, 25, "v");
+      L.critter(9, 14, 4, 2.4, 0); L.critter(18, 14, 4, 2.4, 0.5); L.set(11, 11, "o");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }, "Spiky ceilings. Jump only where it's open."),
+    level("Crumble bridge", function (L) {
+      L.floor(0, 5); L.floor(24, 29);
+      L.row(13, 7, 8, "F"); L.row(13, 11, 12, "F"); L.row(13, 15, 16, "F"); L.row(13, 19, 20, "F");
+      L.set(13, 9, "o"); L.critter(24, 14, 3, 2.4, 0);
+      L.set(2, 14, "P"); L.set(29, 14, "D");
+    }),
+    level("Pogo party", function (L) {
+      L.floor(0, 29); L.set(4, 14, "B"); L.row(8, 7, 11, "#"); L.critter(7, 7, 4, 2.4, 0);
+      L.row(5, 15, 23, "#"); L.critter(15, 4, 5, 1.6, 0.3); L.set(12, 4, "o");
+      L.set(2, 14, "P"); L.set(22, 4, "D");
+    }),
+    level("Blink and prickle", function (L) {
+      L.floor(0, 3); L.floor(26, 29); L.row(14, 4, 25, "^");
+      L.set(6, 13, "T"); L.set(9, 13, "t"); L.set(12, 13, "T"); L.set(15, 13, "t"); L.set(18, 13, "T"); L.set(21, 13, "t");
+      L.set(13, 9, "o"); L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Wrong way round", function (L) {
+      L.floor(0, 29); L.set(4, 14, "Z"); L.critter(8, 14, 5, 2.4, 0); L.row(14, 15, 16, "^"); L.set(18, 14, "Z"); L.critter(20, 14, 5, 2.4, 0.5);
+      L.row(11, 10, 12, "#"); L.set(11, 10, "o");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Ghost garden", function (L) {
+      L.floor(0, 3); L.floor(24, 29);
+      L.set(5, 13, "G"); L.set(8, 12, "G"); L.set(11, 11, "G"); L.set(14, 10, "G"); L.set(17, 11, "G"); L.set(20, 12, "G");
+      L.critter(24, 14, 3, 1.6, 0); L.set(14, 6, "o");
+      L.set(2, 14, "P"); L.set(29, 14, "D");
+    }),
+    level("Peekaboo door", function (L) {
+      L.floor(0, 29); L.critter(5, 14, 5, 2.4, 0); L.set(12, 14, "R"); L.critter(14, 14, 5, 1.6, 0.25); L.row(14, 20, 21, "^");
+      L.critter(23, 14, 3, 2.4, 0.6); L.set(28, 14, "r");
+      L.set(2, 14, "P");
+    }),
+    level("Tunnel of love", function (L) {
+      L.floor(0, 29); L.row(10, 5, 26, "#"); L.row(11, 6, 10, "v"); L.row(11, 13, 16, "v"); L.row(11, 19, 25, "v");
+      L.critter(6, 14, 16, 4.8, 0); L.set(11, 12, "o");
+      L.set(2, 14, "P"); L.set(28, 14, "D");
+    }, "Hide in the gaps. Let it pass."),
+    level("Raining prickles", function (L) {
+      L.floor(0, 29); L.set(6, 11, "C"); L.set(10, 11, "C"); L.set(14, 11, "C"); L.set(18, 11, "C"); L.set(22, 11, "C");
+      L.critter(8, 14, 2, 1.6, 0); L.critter(16, 14, 2, 1.6, 0.5); L.set(12, 8, "o");
+      L.set(2, 14, "P"); L.set(27, 14, "D");
+    }),
+    level("Cloud nine", function (L) {
+      L.floor(0, 29); L.set(4, 14, "B"); L.row(8, 7, 11, "#"); L.critter(7, 7, 4, 2.4, 0);
+      L.row(5, 15, 19, "#"); L.row(5, 16, 17, "F"); L.set(19, 4, "B"); L.row(2, 24, 29, "#");
+      L.set(13, 4, "o"); L.set(2, 14, "P"); L.set(27, 1, "D");
+    }),
+    level("Mirror maze", function (L) {
+      L.floor(0, 6); L.floor(9, 13); L.floor(16, 20); L.floor(23, 29);
+      L.set(3, 14, "Z"); L.set(11, 14, "Z"); L.set(18, 14, "Z"); L.critter(9, 14, 3, 2.4, 0); L.critter(16, 14, 3, 1.6, 0.4); L.row(14, 25, 26, "^");
+      L.set(14, 10, "o"); L.set(2, 14, "P"); L.set(28, 14, "D");
+    }),
+    level("Everything everywhere", function (L) {
+      L.floor(0, 29); L.set(5, 14, "Q"); L.fake(8, 9); L.row(14, 12, 13, "^"); L.set(16, 14, "H"); L.set(19, 14, "Z"); L.critter(21, 14, 4, 2.4, 0); L.set(24, 11, "C");
+      L.set(26, 14, "B"); L.row(8, 27, 29, "#");
+      L.set(17, 9, "o"); L.set(2, 14, "P"); L.set(29, 7, "D");
+    }),
+    level("Heartbreak Peak", function (L) {
+      L.floor(0, 4); L.row(12, 6, 9, "#"); L.critter(6, 11, 3, 2.4, 0); L.row(9, 12, 14, "F"); L.set(17, 9, "T"); L.set(20, 9, "t");
+      L.row(7, 23, 29, "#"); L.critter(23, 6, 5, 1.6, 0); L.row(6, 25, 26, "v"); L.set(14, 5, "o");
+      L.set(2, 14, "P"); L.set(28, 6, "D");
+    }, "The last one. Be brave.")
   ];
 
   var TAUNTS = [
@@ -342,10 +434,14 @@ canvas { display: block; }
   var cv = document.getElementById("c"), ctx = cv.getContext("2d");
   var $ = function (id) { return document.getElementById(id); };
   var mode = "menu", li = 0, deaths = 0, best = 0;
+  var crits = [], hearts = [], winT = 0, winStars = 0, winDoor = null, stars = {}, heartsGot = {};
   var g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, popped, reversed, particles, ring, msg, msgT, deadT, bannerT, tick = 0;
   var input = { l: false, r: false }, audio;
   var viewW = W, viewH = H, baseScale = 1, camX = 0, camY = 0, lvDeaths = 0, uiOpen = false, levelsFrom = "menu";
-  try { best = +localStorage.getItem("trust-best") || 0; } catch (e) {}
+  try { best = +localStorage.getItem("trust-best") || 0; stars = JSON.parse(localStorage.getItem("trust-stars") || "{}") || {}; heartsGot = JSON.parse(localStorage.getItem("trust-hearts") || "{}") || {}; } catch (e) {}
+  function save() { try { localStorage.setItem("trust-stars", JSON.stringify(stars)); localStorage.setItem("trust-hearts", JSON.stringify(heartsGot)); } catch (e) {} }
+  function sum(o) { var n = 0; for (var k in o) n += o[k]; return n; }
+  function totalHearts() { var n = 0; LEVELS.forEach(function (lv) { lv.g.forEach(function (r) { r.forEach(function (ch) { if (ch === "o") n++; }); }); }); return n; }
 
   function beep(f, d, type) {
     try {
@@ -357,8 +453,9 @@ canvas { display: block; }
   }
 
   function load(i) {
-    li = i; g = LEVELS[i].g.map(function (r) { return r.slice(); });
-    doors = []; hs = []; cs = []; zs = [];
+    li = i; tick = 0; g = LEVELS[i].g.map(function (r) { return r.slice(); });
+    doors = []; hs = []; cs = []; zs = []; hearts = []; winT = 0; winDoor = null;
+    crits = LEVELS[i].crit;
     ftimers = {}; shakes = {}; falling = []; revealed = {}; popped = {}; reversed = false; particles = []; ring = 0;
     msg = ""; msgT = 0; deadT = 0; bannerT = 1.6;
     var r, c, ch, k;
@@ -371,6 +468,7 @@ canvas { display: block; }
       else if (ch === "H") { hs.push({ c: c, r: r }); g[r][c] = "."; }
       else if (ch === "C") { cs.push({ c: c, r: r }); }
       else if (ch === "Z") { zs.push({ c: c, r: r }); g[r][c] = "."; }
+      else if (ch === "o") { hearts.push({ c: c, r: r, got: false }); g[r][c] = "."; }
     }
     for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (g[r][c] === "r") {
       g[r][c] = ".";
@@ -404,34 +502,53 @@ canvas { display: block; }
     mode = "dead"; deadT = DUR; ring = 0; deaths++; lvDeaths++; if (lvDeaths >= 8) $("skipBtn").hidden = false;
     dstyle = nextStyle(); var D = DEATHS[dstyle];
     dX = p.x + p.w / 2; dY = Math.min(p.y + p.h, H - 2);
-    msg = D.line; msgT = 1.3;
+    msg = lvDeaths % 4 === 0 ? CHEERS[Math.floor(Math.random() * CHEERS.length)] : D.line; msgT = 1.5;
     if (D.parts) { var cols = D.partCols || ["#ff9f43", "#ffd08a", "#ffffff", "#ff6b81"]; for (var i = 0; i < D.parts; i++) particles.push({ x: dX, y: dY - 8, vx: (Math.random() - .5) * 240, vy: -Math.random() * 240, t: 0.7, col: cols[i % cols.length] }); }
     D.snd.forEach(function (n) { setTimeout(function () { beep(n[0], n[1], n[2]); }, n[3] || 0); });
+  }
+  function critPos(cr) {
+    var u = (tick / cr.period + cr.ph) % 1, s = 0.5 - 0.5 * Math.cos(u * 6.2832);
+    return { x: cr.c * T + s * cr.range * T, y: (cr.r + 1) * T, dir: Math.sin(u * 6.2832) >= 0 ? 1 : -1 };
   }
   function enter(i) { lvDeaths = 0; $("skipBtn").hidden = true; load(i); }
   function advance() {
     if (li + 1 > best) { best = li + 1; try { localStorage.setItem("trust-best", best); } catch (e) {} }
     if (li + 1 >= LEVELS.length) {
-      mode = "end"; $("endText").textContent = "All " + LEVELS.length + " levels done. Deaths: " + deaths + ". Nothing was ever your fault.";
+      mode = "end";
+      var hg = sum(heartsGot), ht = totalHearts();
+      $("endStory").textContent = "The little one was waiting behind the last door the whole time. It trusted you every step of the way." + (hg >= ht ? " Every heart collected. Somebody got a crown." : "");
+      $("endText").textContent = "Deaths " + deaths + "  |  Stars " + sum(stars) + "/" + LEVELS.length * 3 + "  |  Hearts " + hg + "/" + ht;
+      [523, 659, 784, 1047, 784, 1047, 1319].forEach(function (f, n) { setTimeout(function () { beep(f, 0.16, "triangle"); }, n * 140); });
       $("end").hidden = false; document.body.classList.add("nopad"); $("skipBtn").hidden = true;
     } else enter(li + 1);
   }
-  function win() {
-    beep(660, 0.1); setTimeout(function () { beep(990, 0.15); }, 110);
-    advance();
+  var YAYS = ["Yay!", "You did it!", "Smooth!", "Look at you go!", "Nailed it!", "Cute and clever.", "Boop. Done."];
+  var CHEERS = ["You've got this!", "So close, little one.", "Deep breath. Again?", "Proud of you already.", "One more try, champ!"];
+  function win(d) {
+    var all = hearts.every(function (h) { return h.got; });
+    winStars = lvDeaths === 0 ? 3 : lvDeaths <= 3 ? 2 : 1;
+    if (!(stars[li] >= winStars)) stars[li] = winStars;
+    if (hearts.length && all) heartsGot[li] = 1;
+    save();
+    mode = "win"; winT = 1.25; winDoor = d; p.vx = 0; msg = YAYS[Math.floor(Math.random() * YAYS.length)]; msgT = 1.2;
+    var dx = d.c * T + 8, dy = d.r * T + 8, cols = ["#ff6b81", "#ffd23f", "#4db8ff", "#5fbf4a", "#b57bff", "#ff9f43"], i;
+    for (i = 0; i < 40; i++) particles.push({ x: dx, y: dy, vx: (Math.random() - .5) * 260, vy: -80 - Math.random() * 230, t: 1.1, col: cols[i % 6], heart: i % 4 === 0 });
+    [523, 659, 784, 1047].forEach(function (f, n) { setTimeout(function () { beep(f, 0.12, "triangle"); }, n * 90); });
+    for (i = 0; i < winStars; i++) (function (n) { setTimeout(function () { beep(1200 + n * 300, 0.1, "sine"); }, 420 + n * 160); })(i);
   }
 
   function update(dt) {
     tick += dt;
     if (bannerT > 0) bannerT -= dt;
     if (msgT > 0) msgT -= dt;
-    var i, c, r, h, ch;
+    var i, c, r, h, ch, k;
     for (i = particles.length - 1; i >= 0; i--) { var q = particles[i]; q.t -= dt; q.vy += 700 * dt; q.x += q.vx * dt; q.y += q.vy * dt; if (q.t <= 0) particles.splice(i, 1); }
     if (mode === "dead") {
       deadT -= dt; ring += dt;
       if (deadT <= 0) { var keepMsg = msg, keepT = msgT; load(li); msg = keepMsg; msgT = keepT; bannerT = 0; }
       return;
     }
+    if (mode === "win") { winT -= dt; p.squash = 0; if (winT <= 0) advance(); return; }
     if (mode !== "play") return;
 
     var dir = (input.r ? 1 : 0) - (input.l ? 1 : 0); if (reversed) dir = -dir;
@@ -452,7 +569,10 @@ canvas { display: block; }
         if (g[h.r][h.c] === "B") { p.vy = -540; p.ground = false; p.coy = 0; p.squash = 0.12; beep(330, 0.08, "triangle"); setTimeout(function () { beep(660, 0.1, "triangle"); }, 70); }
       } else { p.y = (h.r + 1) * T; p.vy = 0; }
     }
-    if (p.ground && !p.wasGround && preVy > 140) p.squash = 0.12;
+    if (p.ground && !p.wasGround && preVy > 140) {
+      p.squash = 0.12;
+      if (preVy > 220) for (i = 0; i < 4; i++) particles.push({ x: p.x + 5, y: p.y + p.h, vx: (i < 2 ? -1 : 1) * (20 + Math.random() * 30), vy: -30 - Math.random() * 30, t: 0.3, col: "#fff8e8" });
+    }
     p.wasGround = p.ground;
     if (p.squash > 0) p.squash -= dt;
     if (p.ground && p.vx) p.walkT += dt;
@@ -514,11 +634,21 @@ canvas { display: block; }
           else if (ch === "v" && overlap(p.x, p.y, p.w, p.h, c * T + 3, r * T, 10, 9)) die();
         }
 
+    // prickles
+    for (i = 0; i < crits.length; i++) { var cp = critPos(crits[i]); if (overlap(p.x, p.y, p.w, p.h, cp.x + 2.5, cp.y - 12, 11, 11)) die(); }
+    // hearts
+    for (i = 0; i < hearts.length && mode === "play"; i++) {
+      var ht = hearts[i];
+      if (!ht.got && overlap(p.x, p.y, p.w, p.h, ht.c * T + 1, ht.r * T + 1, 14, 14)) {
+        ht.got = true; beep(988, 0.07, "triangle"); setTimeout(function () { beep(1319, 0.12, "triangle"); }, 70); msg = "Got a heart!"; msgT = 1;
+        for (k = 0; k < 10; k++) particles.push({ x: ht.c * T + 8, y: ht.r * T + 8, vx: (Math.random() - .5) * 120, vy: -Math.random() * 110, t: 0.6, col: k % 2 ? "#ff6b81" : "#ffc0d2", heart: true });
+      }
+    }
     // doors
     for (i = 0; i < doors.length && mode === "play"; i++) {
       var d = doors[i], dcx = d.c * T + 8;
       if (d.hop && !d.hopped && d.dest && Math.abs(cx - dcx) < 44) { d.hopped = true; d.c = d.dest.c; d.r = d.dest.r; msg = "Rude."; msgT = 1; beep(740, 0.08); }
-      if (overlap(p.x, p.y, p.w, p.h, d.c * T + 2, d.r * T, 12, T)) { if (d.kind === "Q") die(); else { win(); return; } }
+      if (overlap(p.x, p.y, p.w, p.h, d.c * T + 2, d.r * T, 12, T)) { if (d.kind === "Q") die(); else { win(d); return; } }
     }
     if (mode === "play" && p.y > H + 24) die();
   }
@@ -587,28 +717,51 @@ canvas { display: block; }
     ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.arc(8.6, 9.5, 1.1, 0, 6.3); ctx.fill();
     ctx.restore();
   }
-  function cloud(x, y, s) {
-    ctx.globalAlpha = 0.92; ctx.fillStyle = "#fff"; ctx.beginPath();
+  function cloud(x, y, s, col) {
+    ctx.globalAlpha = 0.92; ctx.fillStyle = col || "#fff"; ctx.beginPath();
     ctx.moveTo(x + 9 * s, y); ctx.arc(x, y, 9 * s, 0, 6.3);
     ctx.moveTo(x + 23 * s, y - 5 * s); ctx.arc(x + 11 * s, y - 5 * s, 12 * s, 0, 6.3);
     ctx.moveTo(x + 33 * s, y); ctx.arc(x + 24 * s, y, 9 * s, 0, 6.3);
     ctx.rect(x, y, 24 * s, 9 * s); ctx.fill(); ctx.globalAlpha = 1;
   }
+  function critterArt(x, y, dir, t) {
+    // x = centre, y = bottom of the tile it walks on
+    var run = Math.sin(t * 22), bob = Math.abs(run) * 0.8;
+    ctx.save(); ctx.translate(x, y - bob);
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(-3 + run * 1.5, -1, 2.3, 1.6, 0, 0, 6.3); ctx.fill(); ctx.beginPath(); ctx.ellipse(3 - run * 1.5, -1, 2.3, 1.6, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = "#8f5bd6"; ctx.strokeStyle = INK; ctx.lineWidth = 1;
+    for (var i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * 3 - 2.2, -9.5 + Math.abs(i) * 0.9); ctx.lineTo(i * 3 + dir * 0.6, -15.5 + Math.abs(i) * 1.2); ctx.lineTo(i * 3 + 2.2, -9.5 + Math.abs(i) * 0.9); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = "#b57bff"; ctx.beginPath(); ctx.ellipse(0, -6, 6.8, 6, 0, 0, 6.3); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-2.4 + dir * 1.4, -7, 2.1, 0, 6.3); ctx.arc(2.4 + dir * 1.4, -7, 2.1, 0, 6.3); ctx.fill();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(-2.4 + dir * 2.1, -6.8, 1, 0, 6.3); ctx.arc(2.4 + dir * 2.1, -6.8, 1, 0, 6.3); ctx.fill();
+    ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-4.6 + dir, -10); ctx.lineTo(-1 + dir, -8.8); ctx.moveTo(4.6 + dir, -10); ctx.lineTo(1 + dir, -8.8); ctx.stroke();
+    ctx.beginPath(); ctx.arc(dir * 1.2, -3.2, 1.7, Math.PI + 0.3, 6.28 - 0.3); ctx.stroke();
+    dot(-5.3, -4.2, 1.1, "#ff9ab0"); dot(5.3, -4.2, 1.1, "#ff9ab0");
+    ctx.restore();
+  }
+  function heartPickup(x, y) { var b = Math.sin(tick * 4 + x) * 1.6; dot(x, y + b, 8, "rgba(255,107,129,.25)"); ctx.save(); ctx.strokeStyle = INK; ctx.lineWidth = 1; heart(x, y + b, 5.2, "#ff6b81"); ctx.stroke(); ctx.restore(); dot(x - 2, y + b - 2, 1, "#fff", 0.9); }
+  var PALS = [
+    { top: "#7cc8ff", bot: "#d9f1ff", sun: "#ffe27a", glow: "rgba(255,243,176,.4)", h1: "#a5dd96", h2: "#7fcb74", cloud: "#ffffff" },
+    { top: "#6fb7f5", bot: "#e6f4ff", sun: "#ffe27a", glow: "rgba(255,243,176,.4)", h1: "#9ad48a", h2: "#6fc067", cloud: "#ffffff" },
+    { top: "#ff9ecb", bot: "#ffe3b8", sun: "#fff3b0", glow: "rgba(255,255,255,.45)", h1: "#c9a0e8", h2: "#a779d6", cloud: "#fff0f7" }
+  ];
   function background() {
-    ctx.fillStyle = "#7cc8ff"; ctx.fillRect(-W, -H * 2, W * 3, H * 2);
-    var gr = ctx.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#7cc8ff"); gr.addColorStop(1, "#d9f1ff");
+    var pal = PALS[li >= 0 && LEVELS[li] ? chapterOf(li) : 0];
+    ctx.fillStyle = pal.top; ctx.fillRect(-W, -H * 2, W * 3, H * 2);
+    var gr = ctx.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, pal.top); gr.addColorStop(1, pal.bot);
     ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(255,243,176,.4)"; ctx.beginPath(); ctx.arc(405, 52, 30, 0, 6.3); ctx.fill();
-    ctx.fillStyle = "#ffe27a"; ctx.beginPath(); ctx.arc(405, 52, 21, 0, 6.3); ctx.fill();
+    ctx.fillStyle = pal.glow; ctx.beginPath(); ctx.arc(405, 52, 30, 0, 6.3); ctx.fill();
+    ctx.fillStyle = pal.sun; ctx.beginPath(); ctx.arc(405, 52, 21, 0, 6.3); ctx.fill();
     var i, x;
-    ctx.fillStyle = "#a5dd96"; ctx.beginPath(); ctx.moveTo(0, H);
+    ctx.fillStyle = pal.h1; ctx.beginPath(); ctx.moveTo(0, H);
     for (x = 0; x <= W; x += 8) ctx.lineTo(x, 190 + Math.sin(x * 0.015 + 1) * 14 + Math.sin(x * 0.04) * 5);
     ctx.lineTo(W, H); ctx.fill();
-    ctx.fillStyle = "#7fcb74"; ctx.beginPath(); ctx.moveTo(0, H);
+    ctx.fillStyle = pal.h2; ctx.beginPath(); ctx.moveTo(0, H);
     for (x = 0; x <= W; x += 8) ctx.lineTo(x, 218 + Math.sin(x * 0.02 + 3) * 10);
     ctx.lineTo(W, H); ctx.fill();
     var bases = [[40, 50, 1], [190, 90, 0.8], [320, 36, 1.1], [450, 110, 0.7]];
-    for (i = 0; i < bases.length; i++) cloud(((bases[i][0] + tick * (4 + i * 1.5)) % (W + 80)) - 40, bases[i][1], bases[i][2]);
+    for (i = 0; i < bases.length; i++) cloud(((bases[i][0] + tick * (4 + i * 1.5)) % (W + 80)) - 40, bases[i][1], bases[i][2], pal.cloud);
+    if (pal === PALS[2]) for (i = 0; i < 9; i++) { var hq = (tick * 0.05 + hash(i, 4)) % 1; ctx.globalAlpha = 0.5 * Math.sin(hq * Math.PI); heart(hash(i, 9) * W + Math.sin(tick + i) * 6, H - hq * H * 0.9, 3 + hash(i, 1) * 2, "#fff"); ctx.globalAlpha = 1; }
   }
   function figure(o) {
     var x = o.x === undefined ? p.x + p.w / 2 : o.x, y = o.y === undefined ? p.y + p.h : o.y;
@@ -631,6 +784,9 @@ canvas { display: block; }
       ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath();
       [-3, 3].forEach(function (ex) { ctx.moveTo(ex - 1.6, ey - 1.6); ctx.lineTo(ex + 1.6, ey + 1.6); ctx.moveTo(ex + 1.6, ey - 1.6); ctx.lineTo(ex - 1.6, ey + 1.6); });
       ctx.stroke();
+    } else if (o.happy) {
+      ctx.strokeStyle = INK; ctx.lineWidth = 1.1; ctx.beginPath();
+      ctx.arc(-3 + f, ey + 1.3, 2.1, 3.4, 6.0); ctx.moveTo(5.1 + f, ey + 1.3); ctx.arc(3 + f, ey + 1.3, 2.1, 3.4, 6.0); ctx.stroke();
     } else if (blink) {
       ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-4.5 + f, ey); ctx.lineTo(-1.5 + f, ey); ctx.moveTo(1.5 + f, ey); ctx.lineTo(4.5 + f, ey); ctx.stroke();
     } else {
@@ -640,14 +796,21 @@ canvas { display: block; }
       ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(-3 + f * 1.9, ey + look, 1.3, 0, 6.3); ctx.arc(3 + f * 1.9, ey + look, 1.3, 0, 6.3); ctx.fill();
     }
     ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath();
-    if (o.ground !== false && !o.xeyes) ctx.arc(f * 1, -6.6, 1.8, 0.15, Math.PI - 0.15); else ctx.arc(f * 1, -5.2, 1.1, 0, 6.3);
+    if (o.happy) { ctx.fillStyle = "#ff6b81"; ctx.arc(f * 1, -6.8, 2.6, 0.05, Math.PI - 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); }
+    else if (o.ground !== false && !o.xeyes) ctx.arc(f * 1, -6.6, 1.8, 0.15, Math.PI - 0.15); else ctx.arc(f * 1, -5.2, 1.1, 0, 6.3);
     ctx.stroke();
+    if (o.crown) {
+      ctx.fillStyle = "#ffd23f"; ctx.strokeStyle = INK; ctx.lineWidth = 0.9; ctx.beginPath();
+      ctx.moveTo(-4, -14.2); ctx.lineTo(-4.6, -19.5); ctx.lineTo(-2, -17.2); ctx.lineTo(0, -20.5); ctx.lineTo(2, -17.2); ctx.lineTo(4.6, -19.5); ctx.lineTo(4, -14.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      dot(0, -17, 0.9, "#ff6b81");
+    }
     ctx.restore();
   }
   function drawPlayer() {
     var sx = 1, sy = 1;
     if (!p.ground) { var v = Math.max(-1, Math.min(1, p.vy / 350)); sy = 1 - v * 0.12; sx = 1 + v * 0.1; }
     if (p.squash > 0) { var k = p.squash / 0.12; sy = 1 - 0.22 * k; sx = 1 + 0.2 * k; }
+    if (mode === "win") { var wt = 1.25 - winT, hop = Math.abs(Math.sin(wt * 9)) * 9 * c01(1.4 - wt); figure({ y: p.y + p.h - hop, sx: 1 - hop * 0.008, sy: 1 + hop * 0.01, happy: true, ground: false, noBlink: true }); return; }
     figure({ sx: sx, sy: sy, walk: p.ground && !!p.vx, ground: p.ground });
   }
 
@@ -892,9 +1055,9 @@ canvas { display: block; }
     rr(px, y, w, h, h / 2); ctx.fillStyle = "rgba(255,248,232,.95)"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.stroke();
     ctx.fillStyle = INK; ctx.textAlign = "left"; ctx.fillText(text, px + 7, y + h / 2 + 0.5);
   }
-  function banner(text, y, alpha) {
-    ctx.font = "800 24px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.lineJoin = "round"; ctx.lineWidth = 6; ctx.strokeStyle = "rgba(74,47,32," + alpha + ")"; ctx.strokeText(text, viewW / 2, y);
+  function banner(text, y, alpha, size) {
+    ctx.font = "800 " + (size || 24) + "px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineJoin = "round"; ctx.lineWidth = (size || 24) > 20 ? 6 : 4; ctx.strokeStyle = "rgba(74,47,32," + alpha + ")"; ctx.strokeText(text, viewW / 2, y);
     ctx.fillStyle = "rgba(255,255,255," + alpha + ")"; ctx.fillText(text, viewW / 2, y);
   }
   function draw() {
@@ -929,16 +1092,69 @@ canvas { display: block; }
         spike(x, y, k);
       }
     }
+    if (mode === "win" && winDoor) {
+      var gx = winDoor.c * T + 8, gy = winDoor.r * T + 8, gk = c01((1.25 - winT) / 0.25);
+      dot(gx, gy, 10 + gk * 16, "rgba(255,226,122,.35)"); dot(gx, gy, 6 + gk * 8, "rgba(255,255,255,.55)");
+      ctx.strokeStyle = "rgba(255,226,122,.7)"; ctx.lineWidth = 1.5; for (i = 0; i < 10; i++) { var ga = i * 0.628 + tick * 0.6; ctx.beginPath(); ctx.moveTo(gx + Math.cos(ga) * 12, gy + Math.sin(ga) * 12); ctx.lineTo(gx + Math.cos(ga) * (14 + gk * 12), gy + Math.sin(ga) * (14 + gk * 12)); ctx.stroke(); }
+    }
     for (i = 0; i < doors.length; i++) door(doors[i].c * T, doors[i].r * T);
+    for (i = 0; i < hearts.length; i++) if (!hearts[i].got) heartPickup(hearts[i].c * T + 8, hearts[i].r * T + 8);
+    for (i = 0; i < crits.length; i++) { var cq = critPos(crits[i]); critterArt(cq.x + 8, cq.y, cq.dir, tick + i); }
     for (i = 0; i < falling.length; i++) tile(falling[i].x, falling[i].y, -1, -1);
     if (D) D.fx(c01(ring / DUR), dX, dY);
-    for (i = 0; i < particles.length; i++) { ctx.fillStyle = particles[i].col; ctx.beginPath(); ctx.arc(particles[i].x, particles[i].y, 2.6, 0, 6.3); ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = INK; ctx.stroke(); }
-    if (mode === "play" || mode === "end" || mode === "menu") drawPlayer();
+    for (i = 0; i < particles.length; i++) {
+      var pt = particles[i];
+      if (pt.heart) { ctx.save(); ctx.globalAlpha = c01(pt.t * 3); ctx.strokeStyle = INK; ctx.lineWidth = 0.7; heart(pt.x, pt.y, 3.4, pt.col); ctx.stroke(); ctx.restore(); continue; }
+      ctx.fillStyle = pt.col; ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.t < 0.35 && pt.col === "#fff8e8" ? 1.6 : 2.6, 0, 6.3); ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = INK; ctx.stroke();
+    }
+    if (mode === "play" || mode === "end" || mode === "menu" || mode === "win") drawPlayer();
     ctx.restore();
     pill((li + 1) + "/" + LEVELS.length + "  " + LEVELS[li].name, 8, 6, "left", 11);
+    if (hearts.length) {
+      var gotN = hearts.filter(function (h) { return h.got; }).length;
+      pill("   " + gotN + "/" + hearts.length, 8, 26, "left", 11);
+      ctx.save(); ctx.strokeStyle = INK; ctx.lineWidth = 0.9; heart(18, 37, 5, gotN === hearts.length ? "#ff3d68" : "#ffc0d2"); ctx.stroke(); ctx.restore();
+    }
     pill("Deaths " + deaths, viewW - 8, 6, "right", 11);
     if (msgT > 0 && msg) pill(msg, viewW / 2, 30, "center", 14);
-    if (bannerT > 0 && mode === "play") banner(LEVELS[li].name, 70, Math.min(1, bannerT));
+    if (bannerT > 0 && mode === "play") {
+      var a = Math.min(1, bannerT), ch = CHAPTERS[chapterOf(li)], first = li === ch.from;
+      if (first) { banner(ch.name, 52, a, 15); banner(ch.sub, 70, a, 12); banner(LEVELS[li].name, 92, a, 24); }
+      else banner(LEVELS[li].name, 70, a, 24);
+      if (LEVELS[li].tip) banner(LEVELS[li].tip, first ? 112 : 92, a, 12);
+    }
+    if (mode === "win") {
+      var wt2 = 1.25 - winT, labels = ["Good!", "Great!", "Perfect!"];
+      banner(labels[winStars - 1], viewH * 0.3, c01(wt2 * 4), 28);
+      for (i = 0; i < 3; i++) {
+        var sk = ease(c01((wt2 - 0.3 - i * 0.16) / 0.22)), sx2 = viewW / 2 + (i - 1) * 34, sy2 = viewH * 0.3 + 30;
+        if (i >= winStars) { ctx.globalAlpha = 0.35; star(sx2, sy2, 13, "#4a2f20"); ctx.globalAlpha = 1; continue; }
+        if (sk > 0) { ctx.save(); ctx.translate(sx2, sy2); ctx.rotate((1 - sk) * -2); ctx.scale(sk * (1 + 0.25 * Math.sin(sk * 3.14)), sk * (1 + 0.25 * Math.sin(sk * 3.14))); star(0, 0, 15, INK); star(0, 0, 12, "#ffd23f"); ctx.restore(); }
+      }
+    }
+  }
+
+  /* ---------- Mascots on the menu and end cards ---------- */
+  function paintArt(id, end) {
+    var el = $(id), c2 = el.getContext("2d"), sv = ctx, sf = p.face, w = el.width / 2, h = el.height / 2, i;
+    ctx = c2; c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, w, h);
+    var gy = h - 5, bob = Math.abs(Math.sin(tick * 3)) * 3;
+    ctx.fillStyle = "rgba(74,47,32,.18)"; ctx.beginPath(); ctx.ellipse(w / 2, gy + 1, end ? 60 : 22, 3, 0, 0, 6.3); ctx.fill();
+    if (!end) {
+      p.face = 1; figure({ x: w / 2, y: gy - bob, sx: 2.2, sy: 2.2 + (bob < 0.6 ? -0.15 : 0), happy: (tick % 6) > 4.2 });
+    } else {
+      p.face = 1; figure({ x: w / 2 - 22, y: gy - bob, sx: 2.6, sy: 2.6, happy: true, noBlink: true });
+      p.face = -1; figure({ x: w / 2 + 30, y: gy - Math.abs(Math.sin(tick * 3 + 1)) * 3, sx: 1.7, sy: 1.7, body: "#ffb3c7", belly: "#ffe0ea", happy: true, noBlink: true, crown: sum(heartsGot) >= totalHearts() });
+    }
+    for (i = 0; i < (end ? 7 : 3); i++) {
+      var q = (tick * 0.35 + i / (end ? 7 : 3)) % 1, hx = w / 2 + (end ? 4 : 0) + Math.sin(q * 6 + i * 2) * (end ? 34 : 24) + (i - 1) * 3;
+      ctx.globalAlpha = Math.sin(q * Math.PI); ctx.strokeStyle = INK; ctx.lineWidth = 0.7; heart(hx, gy - 22 - q * (h - 30), end ? 4.5 : 3.5, i % 2 ? "#ff6b81" : "#ffc0d2"); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    ctx = sv; p.face = sf;
+  }
+  function menuStats() {
+    var el = $("menuStats"), st = sum(stars), hg = sum(heartsGot);
+    el.hidden = !(st || hg); el.textContent = "Stars " + st + "/" + LEVELS.length * 3 + "  |  Hearts " + hg + "/" + totalHearts();
   }
 
   /* ---------- Loop & sizing ---------- */
@@ -979,7 +1195,9 @@ canvas { display: block; }
   function frame(t) {
     var dt = Math.min((t - last) / 1000, 1 / 30); last = t;
     if (!paused && !uiOpen) update(dt);
-    stepCam(dt); draw(); requestAnimationFrame(frame);
+    stepCam(dt); draw();
+    if (!$("menu").hidden) paintArt("menuArt", false); else if (!$("end").hidden) paintArt("endArt", true);
+    requestAnimationFrame(frame);
   }
 
   /* ---------- Input ---------- */
@@ -1025,6 +1243,7 @@ canvas { display: block; }
   $("cont").addEventListener("click", function () { startAt(Math.min(best, LEVELS.length - 1)); });
   $("again").addEventListener("click", function () { deaths = 0; startAt(0); });
   if (best > 0 && best < LEVELS.length) $("cont").hidden = false;
+  menuStats();
 
   // Test hook: lets a headless bot step the simulation deterministically.
   function openPause() {
@@ -1038,7 +1257,12 @@ canvas { display: block; }
     levelsFrom = from; var grid = $("lvGrid"); grid.innerHTML = "";
     var open = Math.min(best, LEVELS.length - 1);
     LEVELS.forEach(function (lv, i) {
-      var b = document.createElement("button"); b.textContent = i + 1; b.title = lv.name;
+      if (i === 0 || CHAPTERS.some(function (c) { return c.from === i; })) {
+        var ch = document.createElement("div"); ch.className = "chap"; ch.textContent = CHAPTERS[chapterOf(i)].name; grid.appendChild(ch);
+      }
+      var b = document.createElement("button"), n = stars[i] || 0;
+      b.textContent = i + 1; b.title = lv.name;
+      var sm = document.createElement("small"); sm.textContent = n ? new Array(n + 1).join("\u2605") + new Array(4 - n).join("\u2606") : "\u2606\u2606\u2606"; b.appendChild(sm);
       if (i > open) b.disabled = true; else if (i === open) b.className = "cur";
       b.addEventListener("click", function () { closeMenus(); startAt(i); });
       grid.appendChild(b);
@@ -1053,7 +1277,7 @@ canvas { display: block; }
   $("skipBtn").addEventListener("click", function () { advance(); });
   $("lvlBtn").addEventListener("click", function () { openLevels("menu"); });
   $("lvlBtn2").addEventListener("click", function () { openLevels("pause"); });
-  $("lvBack").addEventListener("click", function () { $("levels").hidden = true; if (levelsFrom === "menu") $("menu").hidden = false; else $("pause").hidden = false; });
+  $("lvBack").addEventListener("click", function () { $("levels").hidden = true; if (levelsFrom === "menu") { $("menu").hidden = false; menuStats(); } else $("pause").hidden = false; });
   window.addEventListener("keydown", function (e) { if (e.code === "Escape") { if (uiOpen && !$("pause").hidden) closeMenus(); else openPause(); } });
 
   window.__trust = {
@@ -1061,9 +1285,10 @@ canvas { display: block; }
     forceDeath: function (i) { bag = [i]; },
     count: function () { return LEVELS.length; },
     view: function () { return [dX, dY, camX, camY, baseScale]; },
-    snap: function () { return JSON.stringify([g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, popped, reversed, tick, mode, li]); },
-    restore: function (t) { var a = JSON.parse(t); g = a[0]; p = a[1]; doors = a[2]; hs = a[3]; cs = a[4]; zs = a[5]; ftimers = a[6]; shakes = a[7]; falling = a[8]; revealed = a[9]; popped = a[10]; reversed = a[11]; tick = a[12]; mode = a[13]; li = a[14]; particles = []; },
-    key: function () { return [Math.round(p.x / 3), Math.round(p.y / 3), Math.round(p.vy / 80), Math.round((tick % 4.8) * 10), reversed ? 1 : 0, Object.keys(ftimers).length, Object.keys(popped).length, falling.length, hs.filter(function (h) { return h.done; }).length, cs.filter(function (c) { return c.fired; }).length, doors.map(function (d) { return d.hopped ? 1 : 0; }).join(""), Object.keys(revealed).length, zs.filter(function (z) { return z.done; }).length].join(","); },
+    snap: function () { return JSON.stringify([g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, popped, reversed, tick, mode, li, hearts]); },
+    restore: function (t) { var a = JSON.parse(t); g = a[0]; p = a[1]; doors = a[2]; hs = a[3]; cs = a[4]; zs = a[5]; ftimers = a[6]; shakes = a[7]; falling = a[8]; revealed = a[9]; popped = a[10]; reversed = a[11]; tick = a[12]; mode = a[13]; li = a[14]; hearts = a[15]; particles = []; },
+    key: function () { return [Math.round(p.x / 3), Math.round(p.y / 3), Math.round(p.vy / 80), Math.round((tick % 4.8) * 10), reversed ? 1 : 0, Object.keys(ftimers).length, Object.keys(popped).length, falling.length, hs.filter(function (h) { return h.done; }).length, cs.filter(function (c) { return c.fired; }).length, doors.map(function (d) { return d.hopped ? 1 : 0; }).join(""), Object.keys(revealed).length, zs.filter(function (z) { return z.done; }).length, hearts.filter(function (h) { return h.got; }).length].join(","); },
+    hearts: function () { return hearts.length; }, dump: function (i) { return LEVELS[i].g.map(function (r) { return r.join(""); }).join("\n") + "\n" + JSON.stringify(LEVELS[i].crit); },
     goal: function () { var d = doors.filter(function (q) { return q.kind === "D"; })[0], c = d.dest ? d.dest.c : d.c, r = d.dest ? d.dest.r : d.r; return { x: c * T + 8, y: r * T + 8 }; }, pos: function () { return p ? p.x : -1; }, step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y, tick: tick, rev: reversed, ground: p.ground }; }
   };
   resize(); load(0); mode = "menu"; requestAnimationFrame(frame);
