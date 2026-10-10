@@ -352,7 +352,7 @@ canvas { display: block; }
     }),
     level("Prickle patrol", function (L) {
       L.floor(0, 29); L.critter(8, 14, 6, 2.4, 0); L.row(14, 15, 16, "^"); L.critter(17, 14, 6, 2.4, 0.5);
-      L.row(11, 11, 13, "#"); L.set(12, 10, "o");
+      L.row(12, 11, 13, "#"); L.set(12, 11, "o");
       L.set(2, 14, "P"); L.set(27, 14, "D");
     }, "Prickles patrol. They look cute. They are not."),
     level("Mind your head", function (L) {
@@ -378,7 +378,7 @@ canvas { display: block; }
     }),
     level("Wrong way round", function (L) {
       L.floor(0, 29); L.set(4, 14, "Z"); L.critter(8, 14, 5, 2.4, 0); L.row(14, 15, 16, "^"); L.set(18, 14, "Z"); L.critter(20, 14, 5, 2.4, 0.5);
-      L.row(11, 10, 12, "#"); L.set(11, 10, "o");
+      L.row(12, 10, 12, "#"); L.set(11, 11, "o");
       L.set(2, 14, "P"); L.set(28, 14, "D");
     }),
     level("Ghost garden", function (L) {
@@ -399,7 +399,7 @@ canvas { display: block; }
     }, "Hide in the gaps. Let it pass."),
     level("Raining prickles", function (L) {
       L.floor(0, 29); L.set(6, 11, "C"); L.set(10, 11, "C"); L.set(14, 11, "C"); L.set(18, 11, "C"); L.set(22, 11, "C");
-      L.critter(8, 14, 2, 1.6, 0); L.critter(16, 14, 2, 1.6, 0.5); L.set(12, 8, "o");
+      L.critter(8, 14, 2, 1.6, 0); L.critter(16, 14, 2, 1.6, 0.5); L.set(12, 12, "o");
       L.set(2, 14, "P"); L.set(27, 14, "D");
     }),
     level("Cloud nine", function (L) {
@@ -413,9 +413,9 @@ canvas { display: block; }
       L.set(14, 10, "o"); L.set(2, 14, "P"); L.set(28, 14, "D");
     }),
     level("Everything everywhere", function (L) {
-      L.floor(0, 29); L.set(5, 14, "Q"); L.fake(8, 9); L.row(14, 12, 13, "^"); L.set(16, 14, "H"); L.set(19, 14, "Z"); L.critter(21, 14, 4, 2.4, 0); L.set(24, 11, "C");
-      L.set(26, 14, "B"); L.row(8, 27, 29, "#");
-      L.set(17, 9, "o"); L.set(2, 14, "P"); L.set(29, 7, "D");
+      L.floor(0, 29); L.set(5, 14, "Q"); L.fake(8, 9); L.set(10, 11, "C"); L.row(14, 13, 14, "^"); L.set(17, 14, "H"); L.set(19, 14, "Z"); L.critter(20, 14, 3, 2.4, 0);
+      L.set(24, 14, "B"); L.row(8, 28, 29, "#");
+      L.set(15, 12, "o"); L.set(2, 14, "P"); L.set(29, 7, "D");
     }),
     level("Heartbreak Peak", function (L) {
       L.floor(0, 4); L.row(12, 6, 9, "#"); L.critter(6, 11, 3, 2.4, 0); L.row(9, 12, 14, "F"); L.set(17, 9, "T"); L.set(20, 9, "t");
@@ -1125,9 +1125,9 @@ canvas { display: block; }
     }
     if (mode === "win") {
       var wt2 = 1.25 - winT, labels = ["Good!", "Great!", "Perfect!"];
-      banner(labels[winStars - 1], viewH * 0.3, c01(wt2 * 4), 28);
+      banner(labels[winStars - 1], viewH * 0.4, c01(wt2 * 4), 28);
       for (i = 0; i < 3; i++) {
-        var sk = ease(c01((wt2 - 0.3 - i * 0.16) / 0.22)), sx2 = viewW / 2 + (i - 1) * 34, sy2 = viewH * 0.3 + 30;
+        var sk = ease(c01((wt2 - 0.3 - i * 0.16) / 0.22)), sx2 = viewW / 2 + (i - 1) * 34, sy2 = viewH * 0.4 + 30;
         if (i >= winStars) { ctx.globalAlpha = 0.35; star(sx2, sy2, 13, "#4a2f20"); ctx.globalAlpha = 1; continue; }
         if (sk > 0) { ctx.save(); ctx.translate(sx2, sy2); ctx.rotate((1 - sk) * -2); ctx.scale(sk * (1 + 0.25 * Math.sin(sk * 3.14)), sk * (1 + 0.25 * Math.sin(sk * 3.14))); star(0, 0, 15, INK); star(0, 0, 12, "#ffd23f"); ctx.restore(); }
       }
