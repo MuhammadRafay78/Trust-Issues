@@ -11,7 +11,7 @@ Trust Issues: Troll Platformer
 
 **Short description** (80 max)
 ```
-40 trick levels where floors, spikes and doors lie. Can you reach the exit?
+54 trick levels where floors, spikes and doors lie. Can you reach the exit?
 ```
 
 **Full description** (4000 max)
@@ -31,15 +31,17 @@ HOW IT PLAYS
 Move left and right, and jump. Every level is a short, suspicious dash to the exit. You will die. Restarts are instant, so you learn the trick and go again.
 
 FEATURES
-• 40 levels, with new tricks every few stages: bounce pads, blinking stones, timed spikes, reversing controls and more
-• 20 different cartoon deaths. You might melt, blast off, get squashed by an anvil or be abducted by a UFO
+• 54 levels in three chapters, with new tricks every few stages: bounce pads, blinking stones, timed spikes, reversing controls, patrolling prickles and more
+• Heartbreak Peak: 14 much harder levels, with collectible hearts hidden in the risky spots
+• Earn up to 3 stars on every level, and keep an eye out for a very happy ending
+• 23 different cartoon explosions. Every time you die it goes off in a new way: fireworks, confetti, a mushroom cloud, a burst of hearts...
 • Stuck on a level? Skip it after a few tries
 • Level select, so you can replay your favourites
 • Big touch controls made for phones
 • Works fully offline
 • No ads, no accounts, no data collected
 
-Think you can handle 40 levels of lies?
+Think you can handle 54 levels of lies?
 ```
 
 **App icon**: `store/icon-512.png` (512 x 512)
@@ -69,7 +71,7 @@ The policy is in `docs/privacy.html`.
 
 **Data safety**
 - Does your app collect or share any of the required user data types? **No**
-- The game saves the furthest level reached on the device only, and sends nothing off the device. It makes no network requests (the font is embedded).
+- The game saves the furthest level reached, star ratings and collected hearts on the device only, and sends nothing off the device. It makes no network requests (the font is embedded).
 
 **Content rating (IARC questionnaire)**
 Answer honestly. Expect these answers:
@@ -83,7 +85,7 @@ Google assigns the final rating from your answers.
 
 ## Release notes (first release)
 ```
-First release: 40 levels of trust issues.
+First release: 54 levels of trust issues.
 ```
 
 ## Before you can publish (checklist)
