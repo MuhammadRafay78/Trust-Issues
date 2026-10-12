@@ -11,7 +11,7 @@ Trust Issues: Troll Platformer
 
 **Short description** (80 max)
 ```
-54 trick levels where floors, spikes and doors lie. Can you reach the exit?
+100 rage-bait levels where floors, spikes and doors lie. Reach the exit!
 ```
 
 **Full description** (4000 max)
@@ -26,24 +26,25 @@ The problem: nothing in these levels is honest.
 • Doors run away, and some doors are fake
 • Invisible platforms hold you up, if you can find them
 • Sometimes your controls flip
+• Bullets, rolling spiked balls, saws, crushers, lasers, meteors, wind, ice and conveyor belts all want you gone
 
 HOW IT PLAYS
 Move left and right, and jump. Every level is a short, suspicious dash to the exit. You will die. Restarts are instant, so you learn the trick and go again.
 
 FEATURES
-• 54 levels in three chapters, with new tricks every few stages: bounce pads, blinking stones, timed spikes, reversing controls, patrolling prickles and more
-• Heartbreak Peak: 14 much harder levels, with collectible hearts hidden in the risky spots
+• 100 levels in six chapters, and almost every level brings a new way to die: bounce pads, blinking stones, timed spikes, reversing controls, flying bullets, rolling boulders and more
+• It gets meaner chapter by chapter, from Cozy Meadow to Pure Hatred. Every level can be beaten, but you will not enjoy it
+• Heartbreak Peak has collectible hearts hidden in the risky spots
 • Earn up to 3 stars on every level, and keep an eye out for a very happy ending
 • 23 different cartoon explosions. Every time you die it goes off in a new way: fireworks, confetti, a mushroom cloud, a burst of hearts...
-• Stuck on a level? Skip it after a few tries
-• Level select, so you can replay your favourites
+• Every level is open from the level select, so jump straight to the pain
 • A wardrobe for your hero: colours and hats, some earned with stars and hearts, the rest one-time purchases
 • Stuck? Watch an optional ad to skip a level. Ads only ever show when you ask for one
 • Big touch controls made for phones
 • Plays offline (the internet is only used for ads and purchases)
 • No accounts, no sign-in
 
-Think you can handle 54 levels of lies?
+Think you can handle 100 levels of lies?
 ```
 
 **App icon**: `store/icon-512.png` (512 x 512)
@@ -93,7 +94,7 @@ Google assigns the final rating from your answers.
 
 ## Release notes (first release)
 ```
-First release: 54 levels of trust issues.
+First release: 100 levels of trust issues.
 ```
 
 ## Before you can publish (checklist)
