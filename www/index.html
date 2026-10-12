@@ -55,10 +55,12 @@ canvas { display: block; }
 .hudbtn { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: 44px; height: 44px; border-radius: 50%; border: 3px solid rgba(74,47,32,.75); background: rgba(255,248,232,.92); display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0; box-shadow: 0 3px 0 rgba(74,47,32,.35); cursor: pointer; }
 .hudbtn i { display: block; width: 5px; height: 16px; background: var(--ink); border-radius: 2px; }
 .hudbtn.skip { top: calc(62px + env(safe-area-inset-top, 0px)); width: auto; height: auto; border-radius: 14px; padding: 8px 16px 5px; font: 800 15px var(--font); color: #fff; background: #6c8cff; border: 0; border-bottom: 5px solid #4a62c4; box-shadow: none; }
+.hudbtn svg { width: 22px; height: 22px; fill: var(--ink); pointer-events: none; }
 .nopad .hudbtn { display: none; }
 @media (orientation: landscape) {
   /* the side columns are empty above the buttons: keep the pause and skip buttons out of the game view */
   .hudbtn { left: auto; right: calc(40px + env(safe-area-inset-right, 0px)); transform: none; }
+  .hudbtn.restart { right: calc(92px + env(safe-area-inset-right, 0px)); }
   .hudbtn.skip { right: calc(12px + env(safe-area-inset-right, 0px)); top: calc(64px + env(safe-area-inset-top, 0px)); padding: 7px 12px 4px; font-size: 14px; }
   .grid { max-height: min(300px, 59vh); }
   .grid button { padding: 6px 0 4px; font-size: 15px; }
@@ -87,9 +89,12 @@ canvas { display: block; }
 .mute.off .w, .mute:not(.off) .x { display: none; }
 .mute.off { background: #ffe0e0; }
 @media (orientation: portrait) {
+  :root { --b: clamp(72px, 27vw, 120px); }
+  .pad { bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
   /* upright phone: keep the pause and skip buttons under the Deaths pill, out of the level name */
   .hudbtn { left: auto; right: calc(10px + env(safe-area-inset-right, 0px)); transform: none; top: calc(50px + env(safe-area-inset-top, 0px)); }
-  .hudbtn.skip { right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(104px + env(safe-area-inset-top, 0px)); }
+  .hudbtn.restart { top: calc(102px + env(safe-area-inset-top, 0px)); }
+  .hudbtn.skip { right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(156px + env(safe-area-inset-top, 0px)); }
   .items { max-height: 56vh; }
 }
 [hidden] { display: none !important; }
@@ -122,6 +127,7 @@ canvas { display: block; }
 </div>
 
 <button id="pauseBtn" class="hudbtn" aria-label="Pause menu"><i></i><i></i></button>
+<button id="restartBtn" class="hudbtn restart" aria-label="Restart the level (you explode)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6.5 12 11V8a5 5 0 11-5 5H5a7 7 0 107-8z"/></svg></button>
 <button id="skipBtn" class="hudbtn skip" hidden>Skip (ad) &rsaquo;</button>
 
 <div class="screen" id="pause" hidden>
@@ -474,6 +480,27 @@ canvas { display: block; }
     }, "The last one. Be brave.")
   ];
 
+  /* ---------- The nasty pass: extra betrayals added on top of the base levels ----------
+     NASTY[levelIndex] = list of ops: ["s",c,r,ch] one tile, ["r",row,c1,c2,ch] a run of tiles,
+     ["c",c,r,range,period,phase] a prickle, ["d",period,start,len] control flips. */
+  var NASTY = {};
+  function applyNasty(i) {
+    var lv = LEVELS[i], c;
+    lv.g = lv.base.map(function (r) { return r.slice(); }); lv.crit = lv.baseCrit.slice(); lv.drunk = null;
+    lv.bul = []; lv.las = []; lv.win = []; lv.met = [];
+    (NASTY[i] || []).forEach(function (o) {
+      if (o[0] === "s") lv.g[o[2]][o[1]] = o[3];
+      else if (o[0] === "r") for (c = o[2]; c <= o[3]; c++) lv.g[o[1]][c] = o[4];
+      else if (o[0] === "c") lv.crit.push({ c: o[1], r: o[2], range: o[3], period: o[4], ph: o[5] || 0, kind: o[6] || "pr", h: o[7] || 40 });
+      else if (o[0] === "b") lv.bul.push({ row: o[1], dir: o[2], period: o[3], ph: o[4] || 0 });
+      else if (o[0] === "l") lv.las.push({ row: o[1], c1: o[2], c2: o[3], period: o[4], start: o[5], len: o[6] });
+      else if (o[0] === "w") lv.win.push({ c1: o[1], r1: o[2], c2: o[3], r2: o[4], dir: o[5] });
+      else if (o[0] === "m") lv.met.push({ col: o[1], period: o[2], ph: o[3] || 0 });
+      else if (o[0] === "d") lv.drunk = { period: o[1], start: o[2], len: o[3] };
+    });
+  }
+  LEVELS.forEach(function (lv, i) { lv.base = lv.g.map(function (r) { return r.slice(); }); lv.baseCrit = lv.crit.slice(); applyNasty(i); });
+
   var TAUNTS = [
     "Skill issue.", "The floor was fine. Then it wasn't.", "You trusted it.", "Classic.",
     "Nobody saw that.", "Again.", "It was right there.", "Bold choice.",
@@ -516,16 +543,16 @@ canvas { display: block; }
       if (ch === "P") { p = { x: c * T + 3, y: (r + 1) * T - 14, w: 10, h: 14, vx: 0, vy: 0, ground: false, wasGround: false, coy: 0, buf: 0, face: 1, walkT: 0, squash: 0 }; g[r][c] = "."; }
       else if (ch === "D") { doors.push({ c: c, r: r, kind: "D" }); g[r][c] = "."; }
       else if (ch === "Q") { doors.push({ c: c, r: r, kind: "Q" }); g[r][c] = "."; }
-      else if (ch === "R") { doors.push({ c: c, r: r, kind: "D", hop: true, hopped: false }); g[r][c] = "."; }
+      else if (ch === "R") { doors.push({ c: c, r: r, kind: "D", hop: true, hopN: 0 }); g[r][c] = "."; }
       else if (ch === "H") { hs.push({ c: c, r: r }); g[r][c] = "."; }
       else if (ch === "C") { cs.push({ c: c, r: r }); }
       else if (ch === "Z") { zs.push({ c: c, r: r }); g[r][c] = "."; }
       else if (ch === "o") { hearts.push({ c: c, r: r, got: false }); g[r][c] = "."; }
     }
-    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (g[r][c] === "r") {
-      g[r][c] = ".";
-      for (k = 0; k < doors.length; k++) if (doors[k].hop) doors[k].dest = { c: c, r: r };
-    }
+    var rs = [];
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (g[r][c] === "r") { g[r][c] = "."; rs.push({ c: c, r: r }); }
+    rs.sort(function (a, b) { return a.c - b.c; });
+    for (k = 0; k < doors.length; k++) if (doors[k].hop) doors[k].dests = rs;
     mode = "play"; snapCam();
   }
 
@@ -534,7 +561,7 @@ canvas { display: block; }
     if (c < 0 || c >= COLS) return true;
     if (r < 0 || r >= ROWS) return false;
     var ch = g[r][c];
-    if (ch === "#" || ch === "F" || ch === "G" || ch === "C" || ch === "B") return true;
+    if (ch === "#" || ch === "F" || ch === "G" || ch === "C" || ch === "B" || ch === "M" || ch === "I" || ch === ">" || ch === "<") return true;
     if (ch === "T") return (tick % 2.4) < 1.2;
     if (ch === "t") return (tick % 2.4) >= 1.2;
     return false;
@@ -554,28 +581,54 @@ canvas { display: block; }
     mode = "dead"; deadT = DUR; ring = 0; deaths++; lvDeaths++; if (lvDeaths >= 3) $("skipBtn").hidden = false;
     dstyle = nextStyle(); var D = DEATHS[dstyle];
     dX = p.x + p.w / 2; dY = Math.min(p.y + p.h, H - 2);
-    msg = lvDeaths % 4 === 0 ? CHEERS[Math.floor(Math.random() * CHEERS.length)] : D.line; msgT = 1.5;
+    msg = lvDeaths % 3 === 0 ? CHEERS[Math.floor(Math.random() * CHEERS.length)] : D.line; msgT = 1.5;
     if (D.parts) { var cols = D.partCols || ["#ff9f43", "#ffd08a", "#ffffff", "#ff6b81"]; for (var i = 0; i < D.parts; i++) particles.push({ x: dX, y: dY - 8, vx: (Math.random() - .5) * 240, vy: -Math.random() * 240, t: 0.7, col: cols[i % cols.length] }); }
     D.snd.forEach(function (n) { setTimeout(function () { beep(n[0], n[1], n[2]); }, n[3] || 0); });
   }
-  function critPos(cr) {
-    var u = (tick / cr.period + cr.ph) % 1, s = 0.5 - 0.5 * Math.cos(u * 6.2832);
-    return { x: cr.c * T + s * cr.range * T, y: (cr.r + 1) * T, dir: Math.sin(u * 6.2832) >= 0 ? 1 : -1 };
+  var BELT = 62;
+  // does anything in this level depend on the clock? (lets the test tools ignore the clock when nothing does)
+  function periodic() {
+    var lv = LEVELS[li]; if (lv.drunk || lv.crit.length || lv.bul.length || lv.las.length || lv.met.length) return true;
+    for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) { var ch = lv.g[r][c]; if (ch === "T" || ch === "t" || ch === "A" || ch === "a") return true; }
+    return false;
   }
+  function drunkNow() { var d = LEVELS[li] && LEVELS[li].drunk; if (!d) return false; var u = tick % d.period; return u >= d.start && u < d.start + d.len; }
+  function isRev() { return reversed !== drunkNow(); }
+  /* moving hazards: all of them are pure functions of the level clock, so a level always plays the same way */
+  var WINDV = 58, LASER_WARN = 0.4;
+  function moverPos(cr) {
+    var u = (tick / cr.period + cr.ph) % 1, s2 = 0.5 - 0.5 * Math.cos(u * 6.2832), k = cr.kind || "pr";
+    if (k === "saw" || k === "thwomp") return { x: cr.c * T, y: (cr.r + s2 * cr.range) * T, dir: 1, u: u };
+    var y = (cr.r + 1) * T;
+    if (k === "bounce") y -= Math.abs(Math.sin(u * 6.2832 * 3)) * (cr.h || 40);
+    return { x: cr.c * T + s2 * cr.range * T, y: y, dir: Math.sin(u * 6.2832) >= 0 ? 1 : -1, u: u };
+  }
+  function moverRect(cr) {
+    var q = moverPos(cr), k = cr.kind || "pr";
+    if (k === "ball") return [q.x + 1.5, q.y - 15, 13, 14];
+    if (k === "bounce") return [q.x + 2.5, q.y - 14, 11, 12];
+    if (k === "saw") return [q.x + 2.5, q.y + 2.5, 11, 11];
+    if (k === "thwomp") return [q.x + 2, q.y + 2, 28, 28];
+    return [q.x + 2.5, q.y - 12, 11, 11];
+  }
+  function bulletPos(b) { var u = (tick / b.period + b.ph) % 1; if (u < 0.25) return null; var k = (u - 0.25) / 0.75; return { x: b.dir > 0 ? -16 + k * (W + 32) : W + 16 - k * (W + 32), y: b.row * T + 8 }; }
+  function meteorPos(m) { var u = (tick / m.period + m.ph) % 1; if (u < 0.25) return null; var k = (u - 0.25) / 0.75; return { x: m.col * T + 8, y: -16 + k * (H + 32) }; }
+  function laserState(l) { var u = tick % l.period; return u >= l.start && u < l.start + l.len ? 2 : (u >= l.start - LASER_WARN && u < l.start ? 1 : 0); }
+  function windPush(px, py, pw, ph) { var w = 0, zs2 = LEVELS[li].win, i; for (i = 0; i < zs2.length; i++) if (overlap(px, py, pw, ph, zs2[i].c1 * T, zs2[i].r1 * T, (zs2[i].c2 - zs2[i].c1 + 1) * T, (zs2[i].r2 - zs2[i].r1 + 1) * T)) w += zs2[i].dir * WINDV; return w; }
   function enter(i) { lvDeaths = 0; $("skipBtn").hidden = true; load(i); }
   function advance() {
     if (li + 1 > best) { best = li + 1; try { localStorage.setItem("trust-best", best); } catch (e) {} }
     if (li + 1 >= LEVELS.length) {
       mode = "end";
       var hg = sum(heartsGot), ht = totalHearts();
-      $("endStory").textContent = "The little one was waiting behind the last door the whole time. It trusted you every step of the way." + (hg >= ht ? " Every heart collected. Somebody got a crown." : "");
+      $("endStory").textContent = "The little one was behind the last door the whole time, and it watched every single one of your deaths." + (hg >= ht ? " Every heart collected. Fine, you get a crown." : "");
       $("endText").textContent = "Deaths " + deaths + "  |  Stars " + sum(stars) + "/" + LEVELS.length * 3 + "  |  Hearts " + hg + "/" + ht;
       [523, 659, 784, 1047, 784, 1047, 1319].forEach(function (f, n) { setTimeout(function () { beep(f, 0.16, "triangle"); }, n * 140); });
       $("end").hidden = false; document.body.classList.add("nopad"); $("skipBtn").hidden = true;
     } else enter(li + 1);
   }
-  var YAYS = ["Yay!", "You did it!", "Smooth!", "Look at you go!", "Nailed it!", "Cute and clever.", "Boop. Done."];
-  var CHEERS = ["You've got this!", "So close, little one.", "Deep breath. Again?", "Proud of you already.", "One more try, champ!"];
+  var YAYS = ["Finally.", "Took you long enough.", "Lucky.", "Don't get cocky.", "That one was a warm-up.", "Fine. You win this one.", "Wow. Only that many tries?"];
+  var CHEERS = ["Skill issue.", "Try harder.", "You call that trying?", "The level is laughing at you.", "Almost. Not really.", "Maybe jump later? Or earlier?"];
   function win(d) {
     var all = hearts.every(function (h) { return h.got; });
     winStars = lvDeaths === 0 ? 3 : lvDeaths <= 3 ? 2 : 1;
@@ -603,8 +656,10 @@ canvas { display: block; }
     if (mode === "win") { winT -= dt; p.squash = 0; if (winT <= 0) advance(); return; }
     if (mode !== "play") return;
 
-    var dir = (input.r ? 1 : 0) - (input.l ? 1 : 0); if (reversed) dir = -dir;
-    p.vx = dir * SPEED; if (dir) p.face = dir;
+    var dir = (input.r ? 1 : 0) - (input.l ? 1 : 0); if (isRev()) dir = -dir;
+    var want = dir * SPEED + (p.belt || 0) + (p.wind || 0);
+    if (p.ice && p.ground) p.vx += (want - p.vx) * Math.min(1, dt * 2.2); else p.vx = want;
+    if (dir) p.face = dir;
     if (p.buf > 0) p.buf -= dt; if (p.coy > 0) p.coy -= dt;
     if (p.buf > 0 && p.coy > 0) { p.vy = -JUMP; p.buf = 0; p.coy = 0; beep(520, 0.06); }
     p.vy = Math.min(p.vy + GRAV * dt, 520);
@@ -626,6 +681,20 @@ canvas { display: block; }
       if (preVy > 220) for (i = 0; i < 4; i++) particles.push({ x: p.x + 5, y: p.y + p.h, vx: (i < 2 ? -1 : 1) * (20 + Math.random() * 30), vy: -30 - Math.random() * 30, t: 0.3, col: "#fff8e8" });
     }
     p.wasGround = p.ground;
+    // what is under the feet: conveyor belts push, ice slides, vanishing floor goes away once you leave it
+    var fr = Math.floor((p.y + p.h + 1) / T), fl = Math.floor(p.x / T), fr2 = Math.floor((p.x + p.w - 0.001) / T), tc;
+    p.belt = 0; p.ice = false; p.wind = windPush(p.x, p.y, p.w, p.h);
+    if (p.ground) {
+      var mt = [];
+      for (c = fl; c <= fr2; c++) {
+        tc = g[fr] && g[fr][c];
+        if (tc === ">") p.belt = BELT; else if (tc === "<") p.belt = -BELT; else if (tc === "I") p.ice = true; else if (tc === "M") mt.push([fr, c]);
+      }
+      p.mt = mt.length ? mt : null;
+    } else if (p.mt) {
+      p.mt.forEach(function (m) { if (g[m[0]][m[1]] === "M") { g[m[0]][m[1]] = "."; if (g[m[0] + 1] && g[m[0] + 1][m[1]] === "M") g[m[0] + 1][m[1]] = "."; for (var z = 0; z < 4; z++) particles.push({ x: m[1] * T + 8, y: m[0] * T + 8, vx: (Math.random() - .5) * 90, vy: -20 - Math.random() * 40, t: 0.5, col: "#9a6b45" }); } });
+      p.mt = null; beep(130, 0.1, "triangle");
+    }
     if (p.squash > 0) p.squash -= dt;
     if (p.ground && p.vx) p.walkT += dt;
 
@@ -687,7 +756,11 @@ canvas { display: block; }
         }
 
     // prickles
-    for (i = 0; i < crits.length; i++) { var cp = critPos(crits[i]); if (overlap(p.x, p.y, p.w, p.h, cp.x + 2.5, cp.y - 12, 11, 11)) die(); }
+    for (i = 0; i < crits.length; i++) { var mr = moverRect(crits[i]); if (overlap(p.x, p.y, p.w, p.h, mr[0], mr[1], mr[2], mr[3])) die(); }
+    var LV = LEVELS[li], hz;
+    for (i = 0; i < LV.bul.length; i++) { hz = bulletPos(LV.bul[i]); if (hz && overlap(p.x, p.y, p.w, p.h, hz.x - 7, hz.y - 3, 14, 6)) die(); }
+    for (i = 0; i < LV.met.length; i++) { hz = meteorPos(LV.met[i]); if (hz && overlap(p.x, p.y, p.w, p.h, hz.x - 5, hz.y - 6, 10, 12)) die(); }
+    for (i = 0; i < LV.las.length; i++) { hz = LV.las[i]; if (laserState(hz) === 2 && overlap(p.x, p.y, p.w, p.h, hz.c1 * T, hz.row * T + 5, (hz.c2 - hz.c1 + 1) * T, 6)) die(); }
     // hearts
     for (i = 0; i < hearts.length && mode === "play"; i++) {
       var ht = hearts[i];
@@ -699,7 +772,7 @@ canvas { display: block; }
     // doors
     for (i = 0; i < doors.length && mode === "play"; i++) {
       var d = doors[i], dcx = d.c * T + 8;
-      if (d.hop && !d.hopped && d.dest && Math.abs(cx - dcx) < 44) { d.hopped = true; d.c = d.dest.c; d.r = d.dest.r; msg = "Rude."; msgT = 1; beep(740, 0.08); }
+      if (d.hop && d.dests && d.hopN < d.dests.length && Math.abs(cx - dcx) < 44) { var dd = d.dests[d.hopN++]; d.c = dd.c; d.r = dd.r; msg = ["Rude.", "Nope.", "Not that door.", "Too slow."][Math.min(d.hopN - 1, 3)]; msgT = 1; beep(740, 0.08); }
       if (overlap(p.x, p.y, p.w, p.h, d.c * T + 2, d.r * T, 12, T)) { if (d.kind === "Q") die(); else { win(d); return; } }
     }
     if (mode === "play" && p.y > H + 24) die();
@@ -714,7 +787,7 @@ canvas { display: block; }
   }
   function tileAt(c, r) {
     if (r < 0) return false; if (r >= ROWS) return true; if (c < 0 || c >= COLS) return true;
-    var ch = g[r][c]; return ch === "#" || ch === "F" || ch === "C" || (ch === "G" && !!revealed[r + "," + c]);
+    var ch = g[r][c]; return ch === "#" || ch === "F" || ch === "C" || ch === "M" || ch === "I" || ch === ">" || ch === "<" || (ch === "G" && !!revealed[r + "," + c]);
   }
   function tile(x, y, c, r) {
     var up = tileAt(c, r - 1), dn = tileAt(c, r + 1), lf = tileAt(c - 1, r), rt = tileAt(c + 1, r);
@@ -732,6 +805,21 @@ canvas { display: block; }
     if (!dn) ctx.fillRect(x, y + T - 1, T, 1);
     if (!lf) ctx.fillRect(x, y, 1, T);
     if (!rt) ctx.fillRect(x + T - 1, y, 1, T);
+  }
+  function iceTile(x, y, c, r) {
+    tile(x, y, c, r);
+    ctx.fillStyle = "#cfeeff"; ctx.fillRect(x, y, T, 6); ctx.fillStyle = "#ffffff"; ctx.fillRect(x + 1, y + 1, T - 2, 1.5);
+    ctx.strokeStyle = "rgba(255,255,255,.9)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 3, y + 5); ctx.lineTo(x + 7, y + 2); ctx.moveTo(x + 9, y + 5); ctx.lineTo(x + 13, y + 2); ctx.stroke();
+    ctx.fillStyle = INK; if (!tileAt(c, r - 1)) ctx.fillRect(x, y, T, 1);
+  }
+  function beltTile(x, y, c, r, dir) {
+    tile(x, y, c, r);
+    ctx.fillStyle = "#3a3a46"; ctx.fillRect(x, y, T, 6);
+    ctx.strokeStyle = "#ffd23f"; ctx.lineWidth = 1.4; ctx.beginPath();
+    var sh = ((tick * 26 * dir) % 8 + 8) % 8;
+    for (var k = -1; k < 3; k++) { var cx2 = x + k * 8 + sh; ctx.moveTo(cx2 - 1 * dir, y + 1); ctx.lineTo(cx2 + 2 * dir, y + 3); ctx.lineTo(cx2 - 1 * dir, y + 5); }
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, T, 6); ctx.clip(); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = INK; ctx.fillRect(x, y, T, 1);
   }
   function spike(x, y, k, flip) {
     ctx.save();
@@ -783,6 +871,69 @@ canvas { display: block; }
     ctx.beginPath(); ctx.arc(dir * 1.2, -3.2, 1.7, Math.PI + 0.3, 6.28 - 0.3); ctx.stroke();
     dot(-5.3, -4.2, 1.1, "#ff9ab0"); dot(5.3, -4.2, 1.1, "#ff9ab0");
     ctx.restore();
+  }
+  function warnSign(x, y) {
+    if (Math.floor(tick * 14) % 2) return;
+    ctx.fillStyle = "#ff3d3d"; ctx.strokeStyle = INK; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x, y - 9); ctx.lineTo(x + 9, y + 7); ctx.lineTo(x - 9, y + 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.fillRect(x - 1, y - 4, 2, 6); ctx.fillRect(x - 1, y + 3, 2, 2);
+  }
+  function spikyBall(x, y, r, rot, col, eyes) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+    ctx.fillStyle = "#5a5a66"; ctx.strokeStyle = INK; ctx.lineWidth = 1;
+    for (var i = 0; i < 8; i++) { var a = i * 0.7854; ctx.beginPath(); ctx.moveTo(Math.cos(a - 0.28) * r * 0.8, Math.sin(a - 0.28) * r * 0.8); ctx.lineTo(Math.cos(a) * (r + 3.5), Math.sin(a) * (r + 3.5)); ctx.lineTo(Math.cos(a + 0.28) * r * 0.8, Math.sin(a + 0.28) * r * 0.8); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.3); ctx.fill(); ctx.stroke(); ctx.restore();
+    if (eyes) { ctx.fillStyle = "#fff"; dot(x - 2.6, y - 1.5, 2.1, "#fff"); dot(x + 2.6, y - 1.5, 2.1, "#fff"); dot(x - 2.2, y - 1.2, 1, INK); dot(x + 3, y - 1.2, 1, INK); ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 5, y - 4.6); ctx.lineTo(x - 1, y - 3); ctx.moveTo(x + 5, y - 4.6); ctx.lineTo(x + 1, y - 3); ctx.stroke(); }
+  }
+  function moverArt(cr, i) {
+    var q = moverPos(cr), k = cr.kind || "pr";
+    if (k === "pr") { critterArt(q.x + 8, q.y, q.dir, tick + i); return; }
+    if (k === "ball") { spikyBall(q.x + 8, q.y - 8.5, 8, tick * 7 * q.dir, "#8d8d9c", true); return; }
+    if (k === "bounce") {
+      ctx.fillStyle = "rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(q.x + 8, (cr.r + 1) * T - 1, 6, 2, 0, 0, 6.3); ctx.fill();
+      spikyBall(q.x + 8, q.y - 7.5, 6.5, tick * 5, "#ff6b81", true); return;
+    }
+    var rx = cr.c * T + (k === "thwomp" ? 16 : 8);
+    ctx.strokeStyle = "rgba(74,47,32,.55)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(rx, cr.r * T); ctx.lineTo(rx, (cr.r + cr.range) * T + (k === "thwomp" ? 32 : 16)); ctx.stroke();
+    if (k === "saw") {
+      ctx.save(); ctx.translate(q.x + 8, q.y + 8); ctx.rotate(tick * 14); ctx.fillStyle = "#cfd6df"; ctx.strokeStyle = INK; ctx.lineWidth = 1;
+      ctx.beginPath(); for (var j = 0; j < 12; j++) { var a = j * 0.5236; ctx.lineTo(Math.cos(a) * (j % 2 ? 6 : 9), Math.sin(a) * (j % 2 ? 6 : 9)); } ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#8a93a0"; ctx.beginPath(); ctx.arc(0, 0, 2.2, 0, 6.3); ctx.fill(); ctx.restore();
+    } else {
+      var X = q.x, Y = q.y; ctx.fillStyle = "#7d7a88"; ctx.strokeStyle = INK; ctx.lineWidth = 1.4; rr(X + 1, Y + 1, 30, 30, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#9a97a6"; ctx.fillRect(X + 4, Y + 4, 24, 3);
+      ctx.fillStyle = "#fff"; dot(X + 10, Y + 15, 3.6, "#fff"); dot(X + 22, Y + 15, 3.6, "#fff"); dot(X + 10.8, Y + 16, 1.6, INK); dot(X + 21.2, Y + 16, 1.6, INK);
+      ctx.strokeStyle = INK; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(X + 6, Y + 9); ctx.lineTo(X + 13, Y + 12); ctx.moveTo(X + 26, Y + 9); ctx.lineTo(X + 19, Y + 12); ctx.moveTo(X + 10, Y + 25); ctx.lineTo(X + 22, Y + 25); ctx.stroke();
+    }
+  }
+  function bulletArt(b) {
+    var u = (tick / b.period + b.ph) % 1;
+    if (u < 0.25) { warnSign(b.dir > 0 ? camX + 12 : camX + viewW - 12, b.row * T + 8); return; }
+    var q = bulletPos(b), d = b.dir;
+    ctx.fillStyle = "#ff9f43"; ctx.beginPath(); ctx.moveTo(q.x - d * 7, q.y); ctx.lineTo(q.x - d * 15 - Math.sin(tick * 60) * 2, q.y - 2.5); ctx.lineTo(q.x - d * 15, q.y + 2.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#4a4a58"; ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(q.x - d * 7, q.y - 3.2); ctx.lineTo(q.x + d * 2, q.y - 3.2); ctx.quadraticCurveTo(q.x + d * 8, q.y, q.x + d * 2, q.y + 3.2); ctx.lineTo(q.x - d * 7, q.y + 3.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#ff3d3d"; ctx.fillRect(Math.min(q.x + d * 1, q.x + d * 4), q.y - 2.2, 3, 4.4);
+  }
+  function meteorArt(m) {
+    var u = (tick / m.period + m.ph) % 1;
+    if (u < 0.25) { warnSign(m.col * T + 8, camY + 12); return; }
+    var q = meteorPos(m);
+    ctx.fillStyle = "rgba(255,159,67,.55)"; ctx.beginPath(); ctx.moveTo(q.x - 4, q.y - 4); ctx.lineTo(q.x, q.y - 28 - Math.sin(tick * 50) * 3); ctx.lineTo(q.x + 4, q.y - 4); ctx.closePath(); ctx.fill();
+    dot(q.x, q.y, 6.5, "#ff6b3c"); dot(q.x, q.y, 3.6, "#ffd23f"); ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(q.x, q.y, 6.5, 0, 6.3); ctx.stroke();
+  }
+  function laserArt(l) {
+    var st = laserState(l), x1 = l.c1 * T, x2 = (l.c2 + 1) * T, y = l.row * T + 8;
+    if (st === 2) { ctx.fillStyle = "rgba(255,60,60,.35)"; ctx.fillRect(x1, y - 5, x2 - x1, 10); ctx.fillStyle = "#ff3d3d"; ctx.fillRect(x1, y - 2.2, x2 - x1, 4.4); ctx.fillStyle = "#fff"; ctx.fillRect(x1, y - 0.8, x2 - x1, 1.6); }
+    else if (st === 1 && Math.floor(tick * 16) % 2) { ctx.strokeStyle = "rgba(255,60,60,.7)"; ctx.lineWidth = 1.4; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke(); ctx.setLineDash([]); }
+    [x1 - 4, x2 - 4].forEach(function (ex) { ctx.fillStyle = "#4a4a58"; ctx.strokeStyle = INK; ctx.lineWidth = 1; rr(ex, y - 6, 8, 12, 2); ctx.fill(); ctx.stroke(); dot(ex + 4, y, 2, st === 2 ? "#ff3d3d" : "#7a2d2d"); });
+  }
+  function windArt(w) {
+    var x = w.c1 * T, y = w.r1 * T, ww = (w.c2 - w.c1 + 1) * T, hh = (w.r2 - w.r1 + 1) * T;
+    ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x, y, ww, hh);
+    ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 1.4;
+    for (var i = 0; i < 6; i++) {
+      var yy = y + 6 + ((i * 41) % Math.max(10, hh - 12)), len = 10 + (i % 3) * 4, xx = x + (((tick * 70 * w.dir + i * 37) % (ww + 20)) + (ww + 20)) % (ww + 20) - 10;
+      ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + len * w.dir, yy); ctx.moveTo(xx + (len - 3) * w.dir, yy - 2.2); ctx.lineTo(xx + len * w.dir, yy); ctx.lineTo(xx + (len - 3) * w.dir, yy + 2.2); ctx.stroke(); ctx.globalAlpha = 1;
+    }
   }
   function heartPickup(x, y) { var b = Math.sin(tick * 4 + x) * 1.6; dot(x, y + b, 8, "rgba(255,107,129,.25)"); ctx.save(); ctx.strokeStyle = INK; ctx.lineWidth = 1; heart(x, y + b, 5.2, "#ff6b81"); ctx.stroke(); ctx.restore(); dot(x - 2, y + b - 2, 1, "#fff", 0.9); }
   var PALS = [
@@ -862,7 +1013,7 @@ canvas { display: block; }
     ctx.strokeStyle = "#3b8f2e"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, -15); ctx.quadraticCurveTo(1, -18, 3.5, -18.5); ctx.stroke();
     ctx.fillStyle = "#5fbf4a"; ctx.beginPath(); ctx.ellipse(3.8, -18.3, 2.2, 1.2, -0.4, 0, 6.3); ctx.fill();
     var ey = -10.5, blink = !o.xeyes && !o.noBlink && (tick % 3.4) < 0.12;
-    if (o.xeyes || reversed) {
+    if (o.xeyes || isRev()) {
       ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.beginPath();
       [-3, 3].forEach(function (ex) { ctx.moveTo(ex - 1.6, ey - 1.6); ctx.lineTo(ex + 1.6, ey + 1.6); ctx.moveTo(ex + 1.6, ey - 1.6); ctx.lineTo(ex - 1.6, ey + 1.6); });
       ctx.stroke();
@@ -1149,7 +1300,9 @@ canvas { display: block; }
     var r, c, ch, i, x, y, k;
     for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
       ch = g[r][c]; x = c * T; y = r * T;
-      if (ch === "#" || ch === "F") tile(x, y, c, r);
+      if (ch === "#" || ch === "F" || ch === "M") tile(x, y, c, r);
+      else if (ch === "I") iceTile(x, y, c, r);
+      else if (ch === ">" || ch === "<") beltTile(x, y, c, r, ch === ">" ? 1 : -1);
       else if (ch === "C") { var s = shakes[r + "," + c]; tile(x + (s !== undefined ? Math.sin(tick * 90) * 1.5 : 0), y, c, r); }
       else if (ch === "G" && revealed[r + "," + c]) tile(x, y, c, r);
       else if (ch === "G") {
@@ -1177,7 +1330,11 @@ canvas { display: block; }
     }
     for (i = 0; i < doors.length; i++) door(doors[i].c * T, doors[i].r * T);
     for (i = 0; i < hearts.length; i++) if (!hearts[i].got) heartPickup(hearts[i].c * T + 8, hearts[i].r * T + 8);
-    for (i = 0; i < crits.length; i++) { var cq = critPos(crits[i]); critterArt(cq.x + 8, cq.y, cq.dir, tick + i); }
+    for (i = 0; i < LEVELS[li].win.length; i++) windArt(LEVELS[li].win[i]);
+    for (i = 0; i < LEVELS[li].las.length; i++) laserArt(LEVELS[li].las[i]);
+    for (i = 0; i < crits.length; i++) moverArt(crits[i], i);
+    for (i = 0; i < LEVELS[li].bul.length; i++) bulletArt(LEVELS[li].bul[i]);
+    for (i = 0; i < LEVELS[li].met.length; i++) meteorArt(LEVELS[li].met[i]);
     for (i = 0; i < falling.length; i++) tile(falling[i].x, falling[i].y, -1, -1);
     if (D) D.fx(c01(ring / DUR), dX, dY);
     for (i = 0; i < particles.length; i++) {
@@ -1465,28 +1622,34 @@ canvas { display: block; }
   var last = performance.now(), paused = false;
   function frame(t) {
     var dt = Math.min((t - last) / 1000, 1 / 30); last = t;
-    if (!paused && !uiOpen) update(dt);
+    if (!paused && !uiOpen) { syncInput(); update(dt); }
     stepCam(dt); draw();
     if (!$("menu").hidden) paintArt("menuArt", false); else if (!$("end").hidden) paintArt("endArt", true); else if (!$("wardrobe").hidden) paintArt("wardArt", false);
     requestAnimationFrame(frame);
   }
 
   /* ---------- Input ---------- */
-  function jump() { if (p) p.buf = 0.1; }
-  // Touch pads use their own hit-testing: the zone reaches well above each button, so a tap above it still presses it.
-  var BTNS = [["L", "bL", 20, 6], ["R", "bR", 6, 20], ["J", "bJ", 20, 20]], held = {};
+  function jump() { if (p) p.buf = 0.14; }
+  // Touch pads: the whole bottom bar is split into three big touch zones (left / right / jump) with no dead gaps,
+  // and a quick tap is held for a moment so it is never lost between two frames.
+  var BTNS = [["L", "bL"], ["R", "bR"], ["J", "bJ"]], held = {}, kb = { l: false, r: false }, hold = { l: 0, r: 0 }, MINHOLD = 95;
   function padHit(x, y) {
     if (uiOpen || document.body.classList.contains("nopad")) return null;
-    for (var i = 0; i < BTNS.length; i++) {
-      var r = $(BTNS[i][1]).getBoundingClientRect();
-      if (x >= r.left - BTNS[i][2] && x <= r.right + BTNS[i][3] && y >= r.top - 120 && y <= r.bottom + 40) return BTNS[i][0];
-    }
-    return null;
+    var L = $("bL").getBoundingClientRect(), R = $("bR").getBoundingClientRect(), J = $("bJ").getBoundingClientRect(), ext = 48;
+    if (y < Math.min(L.top, R.top, J.top) - 140) return null;
+    var bLR = (L.right + R.left) / 2, bRJ = (R.right + J.left) / 2;
+    if (x < bLR) return x >= L.left - ext ? "L" : null;
+    if (x < bRJ) return x <= R.right + ext ? "R" : null;
+    return x >= J.left - ext ? "J" : null;
+  }
+  function syncInput() {
+    var on = {}, id, now = performance.now(); for (id in held) if (held[id]) on[held[id]] = true;
+    input.l = kb.l || !!on.L || now < hold.l; input.r = kb.r || !!on.R || now < hold.r;
+    BTNS.forEach(function (b) { $(b[1]).classList.toggle("on", !!on[b[0]] || (b[0] === "L" && now < hold.l) || (b[0] === "R" && now < hold.r)); });
   }
   function applyHeld() {
-    var on = {}, id; for (id in held) if (held[id]) on[held[id]] = true;
-    input.l = !!on.L; input.r = !!on.R;
-    BTNS.forEach(function (b) { $(b[1]).classList.toggle("on", !!on[b[0]]); });
+    var now = performance.now(), id; for (id in held) { if (held[id] === "L") hold.l = now + MINHOLD; if (held[id] === "R") hold.r = now + MINHOLD; }
+    syncInput();
   }
   window.addEventListener("pointerdown", function (e) {
     var k = padHit(e.clientX, e.clientY); if (!k) return;
@@ -1497,17 +1660,17 @@ canvas { display: block; }
     var k = padHit(e.clientX, e.clientY);
     if (k !== held[e.pointerId]) { held[e.pointerId] = k; if (k === "J") jump(); applyHeld(); }
   });
-  function release(e) { if (e.pointerId in held) { delete held[e.pointerId]; applyHeld(); } }
+  function release(e) { if (e.pointerId in held) { delete held[e.pointerId]; syncInput(); } }
   window.addEventListener("pointerup", release); window.addEventListener("pointercancel", release);
   window.addEventListener("contextmenu", function (e) { e.preventDefault(); });
   var KEYS = { ArrowLeft: "l", KeyA: "l", ArrowRight: "r", KeyD: "r" };
   window.addEventListener("keydown", function (e) {
-    if (KEYS[e.code]) { input[KEYS[e.code]] = true; e.preventDefault(); }
+    if (KEYS[e.code]) { kb[KEYS[e.code]] = true; syncInput(); e.preventDefault(); }
     else if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") { if (!e.repeat) jump(); e.preventDefault(); }
     else if (e.code === "KeyR" && mode === "play") { die(); }
   });
-  window.addEventListener("keyup", function (e) { if (KEYS[e.code]) input[KEYS[e.code]] = false; });
-  window.addEventListener("blur", function () { held = {}; applyHeld(); });
+  window.addEventListener("keyup", function (e) { if (KEYS[e.code]) { kb[KEYS[e.code]] = false; syncInput(); } });
+  window.addEventListener("blur", function () { held = {}; kb.l = kb.r = false; hold.l = hold.r = 0; syncInput(); });
 
   function startAt(i) { $("menu").hidden = true; $("end").hidden = true; $("levels").hidden = true; $("pause").hidden = true; uiOpen = false; document.body.classList.remove("nopad"); resize(); enter(i); }
   $("play").addEventListener("click", function () { deaths = 0; startAt(0); });
@@ -1542,6 +1705,7 @@ canvas { display: block; }
     if (from === "menu") { uiOpen = false; }
   }
   $("pauseBtn").addEventListener("click", openPause);
+  $("restartBtn").addEventListener("click", function () { if (mode === "play") die(); });
   $("resume").addEventListener("click", closeMenus);
   $("restart").addEventListener("click", function () { closeMenus(); var keep = lvDeaths; enter(li); lvDeaths = keep; bannerT = 0; });
   $("skip").addEventListener("click", function () { if (lvDeaths < 3) return; askSkip(); });
@@ -1558,9 +1722,20 @@ canvas { display: block; }
     view: function () { return [dX, dY, camX, camY, baseScale]; },
     snap: function () { return JSON.stringify([g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, popped, reversed, tick, mode, li, hearts]); },
     restore: function (t) { var a = JSON.parse(t); g = a[0]; p = a[1]; doors = a[2]; hs = a[3]; cs = a[4]; zs = a[5]; ftimers = a[6]; shakes = a[7]; falling = a[8]; revealed = a[9]; popped = a[10]; reversed = a[11]; tick = a[12]; mode = a[13]; li = a[14]; hearts = a[15]; particles = []; },
-    key: function () { return [Math.round(p.x / 3), Math.round(p.y / 3), Math.round(p.vy / 80), Math.round((tick % 4.8) * 10), reversed ? 1 : 0, Object.keys(ftimers).length, Object.keys(popped).length, falling.length, hs.filter(function (h) { return h.done; }).length, cs.filter(function (c) { return c.fired; }).length, doors.map(function (d) { return d.hopped ? 1 : 0; }).join(""), Object.keys(revealed).length, zs.filter(function (z) { return z.done; }).length, hearts.filter(function (h) { return h.got; }).length].join(","); },
+    key: function () { return [Math.round(p.x / 3), Math.round(p.y / 3), Math.round(p.vy / 80), periodic() ? Math.round((tick % 4.8) * 10) : 0, reversed ? 1 : 0, Object.keys(ftimers).length, Object.keys(popped).length, falling.length, hs.filter(function (h) { return h.done; }).length, cs.filter(function (c) { return c.fired; }).length, doors.map(function (d) { return d.hopN || 0; }).join(""), Math.round(p.vx / 30), g.reduce(function (n, row) { return n + row.filter(function (ch) { return ch === "M"; }).length; }, 0), Object.keys(revealed).length, zs.filter(function (z) { return z.done; }).length, hearts.filter(function (h) { return h.got; }).length].join(","); },
     hearts: function () { return hearts.length; }, dump: function (i) { return LEVELS[i].g.map(function (r) { return r.join(""); }).join("\n") + "\n" + JSON.stringify(LEVELS[i].crit); },
-    goal: function () { var d = doors.filter(function (q) { return q.kind === "D"; })[0], c = d.dest ? d.dest.c : d.c, r = d.dest ? d.dest.r : d.r; return { x: c * T + 8, y: r * T + 8 }; }, pos: function () { return p ? p.x : -1; }, step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y, tick: tick, rev: reversed, ground: p.ground }; }
+    goal: function () { var d = doors.filter(function (q) { return q.kind === "D"; })[0], f = d.dests && d.dests.length ? d.dests[d.dests.length - 1] : d; return { x: f.c * T + 8, y: f.r * T + 8 }; },
+    addLevel: function (name, rows, tip) {
+      var lv = { name: name, g: rows.map(function (r) { return r.split(""); }), crit: [], tip: tip || "" };
+      lv.base = lv.g.map(function (r) { return r.slice(); }); lv.baseCrit = []; LEVELS.push(lv); applyNasty(LEVELS.length - 1); return LEVELS.length - 1;
+    },
+    periodic: function () { return periodic(); },
+    targets: function () {
+      var t = []; hearts.forEach(function (h) { if (!h.got) t.push({ x: h.c * T + 8, y: h.r * T + 8 }); });
+      if (!t.length) { var d = doors.filter(function (q) { return q.kind === "D"; })[0], f = d.dests && d.dests.length ? d.dests[d.dests.length - 1] : d; t.push({ x: f.c * T + 8, y: f.r * T + 8 }); }
+      return t;
+    },
+    nasty: function (i, ops) { NASTY[i] = ops; applyNasty(i); }, baseDump: function (i) { return LEVELS[i].base.map(function (r) { return r.join(""); }).join("\n") + "\n" + JSON.stringify(LEVELS[i].baseCrit); }, pos: function () { return p ? p.x : -1; }, step: function (l, r, j, dt) { input.l = l; input.r = r; if (j) jump(); update(dt); return { mode: mode, li: li, x: p.x, y: p.y, tick: tick, rev: reversed, ground: p.ground }; }
   };
   resize(); load(0); mode = "menu"; requestAnimationFrame(frame);
 })();
