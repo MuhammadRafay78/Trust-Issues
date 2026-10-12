@@ -9,7 +9,7 @@ CI (`.github/workflows/build.yml`) builds a debug APK on every push to `main`. A
 
 Local: `npm ci && npx cap sync android && cd android && ./gradlew assembleDebug` (needs JDK 21 and the Android SDK).
 
-Package name `com.trustissues.game` is a placeholder. Change it before the first Play upload; it cannot change afterwards.
+Package name is `com.muhammadrafay.trustissues`. It cannot change after the first Play upload.
 
 ## Ads and purchases
 Both are built in and use Google's own test setup until you plug in your accounts.

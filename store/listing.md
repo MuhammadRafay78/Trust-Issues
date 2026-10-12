@@ -99,7 +99,7 @@ First release: 54 levels of trust issues.
 ## Before you can publish (checklist)
 - [ ] Signing key created and GitHub secrets added (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`)
 - [ ] Release bundle (`.aab`) downloaded from the GitHub Actions run
-- [ ] Package name `com.trustissues.game` confirmed (it cannot be changed after the first upload)
+- [ ] Package name `com.muhammadrafay.trustissues` confirmed (it cannot be changed after the first upload)
 - [ ] Privacy policy live and contact email filled in
 - [ ] AdMob app created, real app id in `android/app/src/main/res/values/strings.xml`, real rewarded ad unit id in `MONEY.rewardedAdId` and `MONEY.adsTest` set to `false` in `www/index.html`
 - [ ] In-app products created in Play Console (ids in the README), and tested with a licence-tester account
