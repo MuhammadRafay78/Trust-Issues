@@ -70,15 +70,22 @@ canvas { display: block; }
 .grid .chap:first-child { margin-top: 0; }
 .grid button small { display: block; font-size: 9px; line-height: 1; letter-spacing: 1px; margin-top: 1px; color: #ffe27a; text-shadow: 0 1px 0 rgba(0,0,0,.3); }
 .grid button:disabled small { color: transparent; text-shadow: none; }
-.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; width: 100%; max-height: 40vh; overflow: auto; padding: 4px; box-sizing: border-box; }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 6px; width: 100%; max-height: min(330px, max(40vh, calc(100vh - 150px))); overflow: auto; padding: 4px; box-sizing: border-box; }
 .items .chap { grid-column: 1 / -1; }
-.item { font: 700 11px var(--font); color: var(--ink); background: #fff; border: 3px solid #d9cdb8; border-radius: 12px; padding: 4px 2px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0; line-height: 1.1; }
-.item canvas { width: 40px; height: 40px; }
+.item { font: 700 11px var(--font); color: var(--ink); background: #fff; border: 3px solid #d9cdb8; border-radius: 12px; padding: 2px 1px 3px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0; line-height: 1.1; }
+.item canvas { width: 34px; height: 34px; }
+@media (max-height: 520px) { #wardArt { display: none; } }
 .item small { font: 800 10px var(--font); color: var(--orange-d); }
 .item.on { border-color: var(--green); background: #effbe9; }
 .item.lock { opacity: .85; }
 .item.lock canvas { filter: grayscale(.55) brightness(.9); }
 #toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: #fff; font: 800 14px var(--font); padding: 8px 16px; border-radius: 999px; z-index: 50; pointer-events: none; max-width: 80vw; text-align: center; }
+.card { position: relative; }
+.mute { position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 3px solid var(--ink); background: #fff; color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 3px 0 rgba(74,47,32,.3); }
+.mute:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(74,47,32,.3); }
+.mute svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; }
+.mute.off .w, .mute:not(.off) .x { display: none; }
+.mute.off { background: #ffe0e0; }
 [hidden] { display: none !important; }
 </style>
 
@@ -94,6 +101,7 @@ canvas { display: block; }
 
 <div class="screen" id="menu">
   <div class="card">
+    <button class="mute" id="muteMenu" aria-label="Sound on or off"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9z" stroke="none"/><path class="w" d="M15.5 8.5a5 5 0 010 7M18 6a9 9 0 010 12" fill="none" stroke-width="2" stroke-linecap="round"/><path class="x" d="M15 9l6 6M21 9l-6 6" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg></button>
     <h1>Trust<br>Issues</h1>
     <canvas id="menuArt" class="art" width="260" height="110"></canvas>
     <p>Reach the door. Floors, spikes, ceilings and doors may be lying to you. Dying is how you learn.</p>
@@ -112,6 +120,7 @@ canvas { display: block; }
 
 <div class="screen" id="pause" hidden>
   <div class="card">
+    <button class="mute" id="mutePause" aria-label="Sound on or off"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9z" stroke="none"/><path class="w" d="M15.5 8.5a5 5 0 010 7M18 6a9 9 0 010 12" fill="none" stroke-width="2" stroke-linecap="round"/><path class="x" d="M15 9l6 6M21 9l-6 6" fill="none" stroke-width="2.2" stroke-linecap="round"/></svg></button>
     <h1>Paused</h1>
     <div class="col">
       <button id="resume" class="btn">Resume</button>
@@ -471,7 +480,8 @@ canvas { display: block; }
   var mode = "menu", li = 0, deaths = 0, best = 0;
   var crits = [], hearts = [], winT = 0, winStars = 0, winDoor = null, stars = {}, heartsGot = {};
   var g, p, doors, hs, cs, zs, ftimers, shakes, falling, revealed, popped, reversed, particles, ring, msg, msgT, deadT, bannerT, tick = 0;
-  var input = { l: false, r: false }, audio;
+  var input = { l: false, r: false }, audio, muted = false;
+  try { muted = localStorage.getItem("trust-mute") === "1"; } catch (e) {}
   var viewW = W, viewH = H, baseScale = 1, camX = 0, camY = 0, lvDeaths = 0, uiOpen = false, levelsFrom = "menu";
   try { best = +localStorage.getItem("trust-best") || 0; stars = JSON.parse(localStorage.getItem("trust-stars") || "{}") || {}; heartsGot = JSON.parse(localStorage.getItem("trust-hearts") || "{}") || {}; } catch (e) {}
   function save() { try { localStorage.setItem("trust-stars", JSON.stringify(stars)); localStorage.setItem("trust-hearts", JSON.stringify(heartsGot)); } catch (e) {} }
@@ -479,6 +489,7 @@ canvas { display: block; }
   function totalHearts() { var n = 0; LEVELS.forEach(function (lv) { lv.g.forEach(function (r) { r.forEach(function (ch) { if (ch === "o") n++; }); }); }); return n; }
 
   function beep(f, d, type) {
+    if (muted) return;
     try {
       audio = audio || new (window.AudioContext || window.webkitAudioContext)();
       var o = audio.createOscillator(), v = audio.createGain();
@@ -1190,8 +1201,9 @@ canvas { display: block; }
       ctx.fillStyle = pt.col; ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.t < 0.35 && pt.col === "#fff8e8" ? 1.6 : 2.6, 0, 6.3); ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = INK; ctx.stroke();
     }
     if (mode === "play" || mode === "end" || mode === "menu" || mode === "win") drawPlayer();
-    drawFog();
+    if (mode !== "menu") drawFog();
     ctx.restore();
+    if (mode === "menu" || mode === "end") return;
     pill((li + 1) + "/" + LEVELS.length + "  " + LEVELS[li].name, 8, 6, "left", 11);
     if (hearts.length) {
       var gotN = hearts.filter(function (h) { return h.got; }).length;
@@ -1399,7 +1411,7 @@ canvas { display: block; }
         cv2.width = 80; cv2.height = 80; nm.textContent = it.name; nt.textContent = itemNote(it);
         b.appendChild(cv2); b.appendChild(nm); b.appendChild(nt); grid.appendChild(b);
         paintTo(cv2, function (w, h2) {
-          var o = { x: w / 2, y: h2 + 17, sx: 1.5, sy: 1.5, noBlink: true, happy: true };
+          var o = { x: w / 2, y: h2 - 3, sx: 1.15, sy: 1.15, noBlink: true, happy: true };
           if (it.kind === "color") { o.body = it.body; o.belly = it.belly; o.hat = "none"; } else { o.hat = it.id; o.body = skin.body; o.belly = skin.belly; }
           figure(o);
         });
@@ -1422,6 +1434,15 @@ canvas { display: block; }
   $("wardAll").addEventListener("click", function () { buy(BUNDLE, function (ok, msg) { if (ok) { applySkin(); renderWardrobe(); toast("Everything unlocked. So cute!"); } else toast(msg); }); });
   $("wardRestore").addEventListener("click", restoreBuys);
   applySkin();
+  function setMuted(m, quiet) {
+    muted = m; try { localStorage.setItem("trust-mute", m ? "1" : "0"); } catch (e) {}
+    $("muteMenu").classList.toggle("off", m); $("mutePause").classList.toggle("off", m);
+    if (!m && !quiet) beep(660, 0.08, "triangle");
+  }
+  $("muteMenu").addEventListener("click", function () { setMuted(!muted); });
+  $("mutePause").addEventListener("click", function () { setMuted(!muted); });
+  window.addEventListener("keydown", function (e) { if (e.code === "KeyM" && !e.repeat) setMuted(!muted); });
+  setMuted(muted, true);
 
   /* ---------- Loop & sizing ---------- */
   function resize() {
