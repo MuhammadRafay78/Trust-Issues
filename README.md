@@ -11,5 +11,19 @@ Local: `npm ci && npx cap sync android && cd android && ./gradlew assembleDebug`
 
 Package name `com.trustissues.game` is a placeholder. Change it before the first Play upload; it cannot change afterwards.
 
+## Ads and purchases
+Both are built in and use Google's own test setup until you plug in your accounts.
+
+**Rewarded ads (skip a level).** After 3 deaths on a level the player can watch an ad to skip it (AdMob, with the consent form where required). Today it uses Google's public test ids, so only test ads ever show. Before the Play release:
+1. Create an app in AdMob and a *Rewarded* ad unit.
+2. Put the AdMob **app id** in `android/app/src/main/res/values/strings.xml` (`admob_app_id`).
+3. In `www/index.html`, set `MONEY.rewardedAdId` to your ad unit id and `MONEY.adsTest` to `false`.
+
+**Mascot wardrobe (colours and hats).** Some items unlock with stars or hearts. The rest are one-time purchases through Google Play Billing. In Play Console > Monetise > In-app products, create these (non-consumable, a price each; `bundle_all` unlocks every paid item):
+`color_sky`, `color_grape`, `color_gold`, `color_midnight`, `hat_catears`, `hat_shades`, `hat_wizard`, `hat_tophat`, `hat_halo`, `bundle_all`.
+Prices shown in the game come from Play, so set them there. Test with a licence-tester account on an internal-testing build.
+
+In a plain browser (no app) the ad is a 3 second preview and purchases just unlock, so the web version is for testing only.
+
 ## Store assets
 `store/` has the Play Store icon, feature graphic, screenshots and the full listing text (`store/listing.md`). `docs/privacy.html` is the privacy policy page (publish it with GitHub Pages: Settings > Pages > `main` / `/docs`).
