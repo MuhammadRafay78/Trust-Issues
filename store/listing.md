@@ -37,9 +37,11 @@ FEATURES
 • 23 different cartoon explosions. Every time you die it goes off in a new way: fireworks, confetti, a mushroom cloud, a burst of hearts...
 • Stuck on a level? Skip it after a few tries
 • Level select, so you can replay your favourites
+• A wardrobe for your hero: colours and hats, some earned with stars and hearts, the rest one-time purchases
+• Stuck? Watch an optional ad to skip a level. Ads only ever show when you ask for one
 • Big touch controls made for phones
-• Works fully offline
-• No ads, no accounts, no data collected
+• Plays offline (the internet is only used for ads and purchases)
+• No accounts, no sign-in
 
 Think you can handle 54 levels of lies?
 ```
@@ -54,11 +56,11 @@ Think you can handle 54 levels of lies?
 |---|---|
 | App or game | Game |
 | Category | Arcade (tag it Platformer, Casual) |
-| Free or paid | Free |
+| Free or paid | Free (with in-app purchases and optional rewarded ads) |
 | Contact email | your public support email |
 | Privacy policy URL | `https://muhammadrafay78.github.io/Trust-Issues/privacy.html` (see below) |
 | Target audience | 13 and over (avoids the stricter Families rules; the game is not designed for young children) |
-| Ads | No ads |
+| Ads | **Contains ads** (optional rewarded ads only) |
 
 ## Privacy policy page (free hosting)
 
@@ -69,18 +71,24 @@ The policy is in `docs/privacy.html`.
 
 ## App content answers (Play Console > Policy and programs > App content)
 
-**Data safety**
-- Does your app collect or share any of the required user data types? **No**
-- The game saves the furthest level reached, star ratings and collected hearts on the device only, and sends nothing off the device. It makes no network requests (the font is embedded).
+**Data safety** (confirm each answer in the console against the AdMob SDK disclosure)
+- Does your app collect or share any of the required user data types? **Yes**
+- Data types: **Device or other IDs** (advertising ID), collected and shared with Google AdMob for **Advertising or marketing**. Collection is required for ads to work and is not optional per user, but ads are only shown if the player chooses to watch one.
+- Is all data encrypted in transit? **Yes**
+- Can users request deletion? Game progress is stored only on the device and is removed on uninstall. Advertising ID can be reset or deleted in Android settings.
+- Purchases are processed by Google Play. The app does not collect payment info or purchase history itself.
+- The game saves progress, stars, hearts and owned cosmetics on the device only.
 
 **Content rating (IARC questionnaire)**
 Answer honestly. Expect these answers:
 - Violence: cartoon characters are comically defeated by spikes, explosions and similar. Pick the mild cartoon or fantasy violence option, with no realistic violence, no blood, no gore.
 - Sexual content, profanity, drugs, gambling: none.
-- User-generated content, chat, location sharing, purchases: none.
+- User-generated content, chat, location sharing: none.
+- Digital purchases: **yes** (cosmetic items). Ads: **yes** (optional rewarded video).
 Google assigns the final rating from your answers.
 
-**Ads**: No ads.
+**Ads**: Yes, contains ads (rewarded video via AdMob, opt-in).
+**In-app products**: create the products listed in the README section "Ads and purchases" (all one-time, non-consumable).
 **News app, COVID, government, financial features**: No.
 
 ## Release notes (first release)
@@ -93,4 +101,6 @@ First release: 54 levels of trust issues.
 - [ ] Release bundle (`.aab`) downloaded from the GitHub Actions run
 - [ ] Package name `com.trustissues.game` confirmed (it cannot be changed after the first upload)
 - [ ] Privacy policy live and contact email filled in
+- [ ] AdMob app created, real app id in `android/app/src/main/res/values/strings.xml`, real rewarded ad unit id in `MONEY.rewardedAdId` and `MONEY.adsTest` set to `false` in `www/index.html`
+- [ ] In-app products created in Play Console (ids in the README), and tested with a licence-tester account
 - [ ] Play Developer account verified. New personal accounts may need a closed test with about 12 testers for 14 days before production (check the current rule in the console)

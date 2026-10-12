@@ -8,8 +8,10 @@
     "apk": "cap sync android && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.2.1",
     "@capacitor/android": "^8.5.3",
-    "@capacitor/core": "^8.5.3"
+    "@capacitor/core": "^8.5.3",
+    "@capgo/native-purchases": "^8.9.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3"

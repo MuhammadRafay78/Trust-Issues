@@ -70,6 +70,15 @@ canvas { display: block; }
 .grid .chap:first-child { margin-top: 0; }
 .grid button small { display: block; font-size: 9px; line-height: 1; letter-spacing: 1px; margin-top: 1px; color: #ffe27a; text-shadow: 0 1px 0 rgba(0,0,0,.3); }
 .grid button:disabled small { color: transparent; text-shadow: none; }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; width: 100%; max-height: 40vh; overflow: auto; padding: 4px; box-sizing: border-box; }
+.items .chap { grid-column: 1 / -1; }
+.item { font: 700 11px var(--font); color: var(--ink); background: #fff; border: 3px solid #d9cdb8; border-radius: 12px; padding: 4px 2px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0; line-height: 1.1; }
+.item canvas { width: 40px; height: 40px; }
+.item small { font: 800 10px var(--font); color: var(--orange-d); }
+.item.on { border-color: var(--green); background: #effbe9; }
+.item.lock { opacity: .85; }
+.item.lock canvas { filter: grayscale(.55) brightness(.9); }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: #fff; font: 800 14px var(--font); padding: 8px 16px; border-radius: 999px; z-index: 50; pointer-events: none; max-width: 80vw; text-align: center; }
 [hidden] { display: none !important; }
 </style>
 
@@ -92,13 +101,14 @@ canvas { display: block; }
       <button id="play" class="btn">Play</button>
       <button id="cont" class="btn alt" hidden>Continue</button>
       <button id="lvlBtn" class="btn alt2">Levels</button>
+      <button id="wardBtn" class="btn alt2">Wardrobe</button>
     </div>
     <p id="menuStats" class="stat" hidden></p>
   </div>
 </div>
 
 <button id="pauseBtn" class="hudbtn" aria-label="Pause menu"><i></i><i></i></button>
-<button id="skipBtn" class="hudbtn skip" hidden>Skip level &rsaquo;</button>
+<button id="skipBtn" class="hudbtn skip" hidden>Skip (ad) &rsaquo;</button>
 
 <div class="screen" id="pause" hidden>
   <div class="card">
@@ -111,6 +121,31 @@ canvas { display: block; }
     </div>
   </div>
 </div>
+
+<div class="screen" id="adAsk" hidden>
+  <div class="card">
+    <h1 class="small">Skip it?</h1>
+    <p id="adText"></p>
+    <div class="row">
+      <button id="adGo" class="btn">Watch ad</button>
+      <button id="adNo" class="btn alt">Keep trying</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="wardrobe" hidden>
+  <div class="card" style="width:min(560px,100%);max-width:min(560px,100%)">
+    <h1 class="small">Wardrobe</h1>
+    <canvas id="wardArt" class="art" width="260" height="110"></canvas>
+    <div id="wardGrid" class="items"></div>
+    <div class="row">
+      <button id="wardBack" class="btn alt small">Back</button>
+      <button id="wardAll" class="btn small" hidden>Unlock everything</button>
+      <button id="wardRestore" class="btn alt2 small" hidden>Restore purchases</button>
+    </div>
+  </div>
+</div>
+<div id="toast" hidden></div>
 
 <div class="screen" id="levels" hidden>
   <div class="card">
@@ -499,7 +534,7 @@ canvas { display: block; }
   var dstyle = 0, dX = 0, dY = 0;
   function die() {
     if (mode !== "play") return;
-    mode = "dead"; deadT = DUR; ring = 0; deaths++; lvDeaths++; if (lvDeaths >= 8) $("skipBtn").hidden = false;
+    mode = "dead"; deadT = DUR; ring = 0; deaths++; lvDeaths++; if (lvDeaths >= 3) $("skipBtn").hidden = false;
     dstyle = nextStyle(); var D = DEATHS[dstyle];
     dX = p.x + p.w / 2; dY = Math.min(p.y + p.h, H - 2);
     msg = lvDeaths % 4 === 0 ? CHEERS[Math.floor(Math.random() * CHEERS.length)] : D.line; msgT = 1.5;
@@ -763,9 +798,48 @@ canvas { display: block; }
     for (i = 0; i < bases.length; i++) cloud(((bases[i][0] + tick * (4 + i * 1.5)) % (W + 80)) - 40, bases[i][1], bases[i][2], pal.cloud);
     if (pal === PALS[2]) for (i = 0; i < 9; i++) { var hq = (tick * 0.05 + hash(i, 4)) % 1; ctx.globalAlpha = 0.5 * Math.sin(hq * Math.PI); heart(hash(i, 9) * W + Math.sin(tick + i) * 6, H - hq * H * 0.9, 3 + hash(i, 1) * 2, "#fff"); ctx.globalAlpha = 1; }
   }
+  var skin = { body: "#ff9f43", belly: "#ffd08a", hat: "none" };
+  function hatArt(kind, body) {
+    ctx.strokeStyle = INK; ctx.lineWidth = 0.9; ctx.lineJoin = "round";
+    var f = p.face;
+    if (kind === "crown") {
+      ctx.fillStyle = "#ffd23f"; ctx.beginPath();
+      ctx.moveTo(-4, -14.2); ctx.lineTo(-4.6, -19.5); ctx.lineTo(-2, -17.2); ctx.lineTo(0, -20.5); ctx.lineTo(2, -17.2); ctx.lineTo(4.6, -19.5); ctx.lineTo(4, -14.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      dot(0, -17, 0.9, "#ff6b81");
+    } else if (kind === "party") {
+      ctx.fillStyle = "#ff6b81"; ctx.beginPath(); ctx.moveTo(-4.6, -13.6); ctx.lineTo(0.5, -25); ctx.lineTo(4.6, -13.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-3, -16.8); ctx.lineTo(2.4, -19.4); ctx.moveTo(-1.6, -20); ctx.lineTo(1.8, -21.6); ctx.stroke();
+      dot(0.5, -25, 1.6, "#ffd23f");
+    } else if (kind === "wizard") {
+      ctx.fillStyle = "#6c4bd6"; ctx.beginPath(); ctx.moveTo(-5.5, -13.8); ctx.quadraticCurveTo(-1, -20, 1.5, -28); ctx.quadraticCurveTo(4, -22, 5.5, -13.8); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, -13.8, 8.4, 2, 0, 0, 6.3); ctx.fillStyle = "#5538b8"; ctx.fill(); ctx.stroke();
+      star(0.5, -19, 1.6, "#ffd23f");
+    } else if (kind === "tophat") {
+      ctx.fillStyle = "#33303c"; ctx.fillRect(-4.6, -22.5, 9.2, 8.8); ctx.strokeRect(-4.6, -22.5, 9.2, 8.8);
+      ctx.fillStyle = "#c0392b"; ctx.fillRect(-4.6, -16.6, 9.2, 2); ctx.beginPath(); ctx.ellipse(0, -13.7, 7.8, 1.9, 0, 0, 6.3); ctx.fillStyle = "#33303c"; ctx.fill(); ctx.stroke();
+    } else if (kind === "catears") {
+      [-1, 1].forEach(function (sd) {
+        ctx.fillStyle = body; ctx.beginPath(); ctx.moveTo(sd * 6.8, -13); ctx.lineTo(sd * 6.6, -21); ctx.lineTo(sd * 1.6, -15.4); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#ff9ab0"; ctx.beginPath(); ctx.moveTo(sd * 5.6, -14.4); ctx.lineTo(sd * 5.6, -18.6); ctx.lineTo(sd * 2.8, -15.6); ctx.closePath(); ctx.fill();
+      });
+    } else if (kind === "bow") {
+      ctx.fillStyle = "#ff6b9a"; ctx.save(); ctx.translate(-4.2 * f, -15.2);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-4.2, -2.8); ctx.lineTo(-4.2, 2.8); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(4.2, -2.8); ctx.lineTo(4.2, 2.8); ctx.closePath(); ctx.fill(); ctx.stroke();
+      dot(0, 0, 1.6, "#ffc0d6"); ctx.restore();
+    } else if (kind === "halo") {
+      ctx.strokeStyle = "#e0a800"; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.ellipse(0, -20 + Math.sin(tick * 3) * 0.6, 5.4, 1.8, 0, 0, 6.3); ctx.stroke();
+      ctx.strokeStyle = "#ffe27a"; ctx.lineWidth = 1; ctx.stroke();
+    } else if (kind === "shades") {
+      ctx.fillStyle = "#26232e";
+      ctx.fillRect(-6.4 + f, -12.6, 5.6, 3.8); ctx.fillRect(0.8 + f, -12.6, 5.6, 3.8);
+      ctx.strokeStyle = "#26232e"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-0.8 + f, -11.4); ctx.lineTo(0.8 + f, -11.4); ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillRect(-5.4 + f, -12, 1.4, 1); ctx.fillRect(1.8 + f, -12, 1.4, 1);
+    }
+  }
   function figure(o) {
     var x = o.x === undefined ? p.x + p.w / 2 : o.x, y = o.y === undefined ? p.y + p.h : o.y;
-    var body = o.body || "#ff9f43", belly = o.belly || "#ffd08a", f = p.face;
+    var body = o.body || skin.body, belly = o.belly || skin.belly, f = p.face, hat = o.hat !== undefined ? o.hat : skin.hat;
     ctx.save(); ctx.globalAlpha = o.alpha === undefined ? 1 : o.alpha; ctx.translate(x, y);
     if (o.rot) { ctx.translate(0, o.pivot === undefined ? -8 : o.pivot); ctx.rotate(o.rot); ctx.translate(0, -(o.pivot === undefined ? -8 : o.pivot)); }
     ctx.scale(o.sx === undefined ? 1 : o.sx, o.sy === undefined ? 1 : o.sy);
@@ -799,11 +873,7 @@ canvas { display: block; }
     if (o.happy) { ctx.fillStyle = "#ff6b81"; ctx.arc(f * 1, -6.8, 2.6, 0.05, Math.PI - 0.05); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); }
     else if (o.ground !== false && !o.xeyes) ctx.arc(f * 1, -6.6, 1.8, 0.15, Math.PI - 0.15); else ctx.arc(f * 1, -5.2, 1.1, 0, 6.3);
     ctx.stroke();
-    if (o.crown) {
-      ctx.fillStyle = "#ffd23f"; ctx.strokeStyle = INK; ctx.lineWidth = 0.9; ctx.beginPath();
-      ctx.moveTo(-4, -14.2); ctx.lineTo(-4.6, -19.5); ctx.lineTo(-2, -17.2); ctx.lineTo(0, -20.5); ctx.lineTo(2, -17.2); ctx.lineTo(4.6, -19.5); ctx.lineTo(4, -14.2); ctx.closePath(); ctx.fill(); ctx.stroke();
-      dot(0, -17, 0.9, "#ff6b81");
-    }
+    if (hat && hat !== "none") hatArt(hat, body);
     ctx.restore();
   }
   function drawPlayer() {
@@ -845,7 +915,7 @@ canvas { display: block; }
   function fuse(t, X, Y, len, col) {
     if (t >= len) return false;
     var k = t / len; col = col || "#ffffff"; if (col.length === 4) col = "#" + col[1] + col[1] + col[2] + col[2] + col[3] + col[3];
-    figure({ x: X, y: Y, sx: 1 + k * 0.35, sy: 1 + k * 0.35, body: mix("#ff9f43", col, k), belly: "#fff", xeyes: k > 0.6 });
+    figure({ x: X, y: Y, sx: 1 + k * 0.35, sy: 1 + k * 0.35, body: mix(skin.body, col, k), belly: "#fff", xeyes: k > 0.6 });
     return true;
   }
   // n bits flung out from (X, cy); shape draws each one
@@ -1157,7 +1227,7 @@ canvas { display: block; }
       p.face = 1; figure({ x: w / 2, y: gy - bob, sx: 2.2, sy: 2.2 + (bob < 0.6 ? -0.15 : 0), happy: (tick % 6) > 4.2 });
     } else {
       p.face = 1; figure({ x: w / 2 - 22, y: gy - bob, sx: 2.6, sy: 2.6, happy: true, noBlink: true });
-      p.face = -1; figure({ x: w / 2 + 30, y: gy - Math.abs(Math.sin(tick * 3 + 1)) * 3, sx: 1.7, sy: 1.7, body: "#ffb3c7", belly: "#ffe0ea", happy: true, noBlink: true, crown: sum(heartsGot) >= totalHearts() });
+      p.face = -1; figure({ x: w / 2 + 30, y: gy - Math.abs(Math.sin(tick * 3 + 1)) * 3, sx: 1.7, sy: 1.7, body: "#ffb3c7", belly: "#ffe0ea", happy: true, noBlink: true, hat: sum(heartsGot) >= totalHearts() ? "crown" : "none" });
     }
     for (i = 0; i < (end ? 7 : 3); i++) {
       var q = (tick * 0.35 + i / (end ? 7 : 3)) % 1, hx = w / 2 + (end ? 4 : 0) + Math.sin(q * 6 + i * 2) * (end ? 34 : 24) + (i - 1) * 3;
@@ -1169,6 +1239,189 @@ canvas { display: block; }
     var el = $("menuStats"), st = sum(stars), hg = sum(heartsGot);
     el.hidden = !(st || hg); el.textContent = "Stars " + st + "/" + LEVELS.length * 3 + "  |  Hearts " + hg + "/" + totalHearts();
   }
+
+  /* ---------- Money: rewarded ads to skip a level, and the mascot wardrobe ---------- */
+  var MONEY = {
+    adsTest: true, // Google's public TEST ads. Set to false and use your own ad unit id for the Play release (see README).
+    rewardedAdId: "ca-app-pub-3940256099942544/5224354917"
+  };
+  var IS_APP = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()), plugins = {};
+  function plugin(name) {
+    if (!IS_APP) return null;
+    if (!(name in plugins)) { try { plugins[name] = (Capacitor.Plugins && Capacitor.Plugins[name]) || Capacitor.registerPlugin(name); } catch (e) { plugins[name] = null; } }
+    return plugins[name];
+  }
+  function toast(text) {
+    var t = $("toast"); t.textContent = text; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(function () { t.hidden = true; }, 2200);
+  }
+
+  /* Rewarded ads. In the app this is AdMob (with the consent form where it is required). In a plain browser it is a short preview. */
+  var adsReady = false, adBusy = false;
+  async function adsInit(A) {
+    if (adsReady) return;
+    var ci = await A.requestConsentInfo();
+    if (ci.isConsentFormAvailable && ci.status === "REQUIRED") ci = await A.showConsentForm();
+    if (!ci.canRequestAds) throw new Error("consent");
+    await A.initialize(); adsReady = true;
+  }
+  // done(true) once the ad has been watched, done(false, message) otherwise
+  function showRewardedAd(say, done) {
+    if (adBusy) return; adBusy = true;
+    var finished = false;
+    function end(ok, msg) { if (finished) return; finished = true; adBusy = false; done(ok, msg); }
+    var A = plugin("AdMob");
+    if (!IS_APP) {
+      var n = 3; say("Preview ad (a real video plays here in the app)... " + n);
+      var t = setInterval(function () { n--; if (n <= 0) { clearInterval(t); end(true); } else say("Preview ad (a real video plays here in the app)... " + n); }, 900);
+      return;
+    }
+    if (!A) { end(false, "Ads are not available right now."); return; }
+    say("Loading ad...");
+    (async function () {
+      var handles = [], rewarded = false;
+      try {
+        await adsInit(A);
+        handles.push(await A.addListener("onRewardedVideoAdReward", function () { rewarded = true; }));
+        handles.push(await A.addListener("onRewardedVideoAdDismissed", function () { end(rewarded, rewarded ? "" : "You need to watch the whole ad to skip."); }));
+        handles.push(await A.addListener("onRewardedVideoAdFailedToShow", function () { end(false, "The ad could not be shown. Try again in a bit."); }));
+        await A.prepareRewardVideoAd({ adId: MONEY.rewardedAdId, isTesting: MONEY.adsTest });
+        await A.showRewardVideoAd();
+        rewarded = true;
+      } catch (e) {
+        end(false, e && e.message === "consent" ? "Ads need your consent to show. You can still keep trying!" : "No ad is available right now. Try again in a bit, or keep trying.");
+      }
+      setTimeout(function () { handles.forEach(function (h) { try { h.remove(); } catch (e) {} }); end(rewarded, rewarded ? "" : "No ad is available right now."); }, 60000);
+    })();
+  }
+  function askSkip() {
+    closeMenus(); uiOpen = true; held = {}; applyHeld(); document.body.classList.add("nopad");
+    $("adText").textContent = "Watch a short ad and we'll skip this level for you. Or keep trying, you can do it!";
+    $("adGo").disabled = false; $("adNo").disabled = false; $("adAsk").hidden = false;
+  }
+  function closeAdAsk() { $("adAsk").hidden = true; closeMenus(); }
+  $("adNo").addEventListener("click", closeAdAsk);
+  $("adGo").addEventListener("click", function () {
+    $("adGo").disabled = true; $("adNo").disabled = true;
+    showRewardedAd(function (m) { $("adText").textContent = m; }, function (ok, msg) {
+      $("adGo").disabled = false; $("adNo").disabled = false;
+      if (ok) { closeAdAsk(); advance(); toast("Skipped!"); } else $("adText").textContent = msg;
+    });
+  });
+
+  /* The wardrobe: colours and hats. Some are earned with stars and hearts, the rest are one-time purchases (Google Play). */
+  var COLORS = [
+    { id: "orange", name: "Orange", body: "#ff9f43", belly: "#ffd08a", how: "free" },
+    { id: "berry", name: "Berry", body: "#ff6b9a", belly: "#ffc0d6", how: "stars", need: 15 },
+    { id: "mint", name: "Mint", body: "#4fcf9c", belly: "#c4f3df", how: "stars", need: 40 },
+    { id: "sky", name: "Sky", body: "#5aa9ff", belly: "#c6e2ff", how: "buy", price: "$0.99" },
+    { id: "grape", name: "Grape", body: "#a36bff", belly: "#dcc7ff", how: "buy", price: "$0.99" },
+    { id: "gold", name: "Gold", body: "#ffc928", belly: "#fff0a8", how: "buy", price: "$0.99" },
+    { id: "midnight", name: "Midnight", body: "#4b4f8f", belly: "#a9acdf", how: "buy", price: "$0.99" }
+  ];
+  var HATS = [
+    { id: "none", name: "No hat", how: "free" },
+    { id: "bow", name: "Bow", how: "stars", need: 10 },
+    { id: "party", name: "Party hat", how: "stars", need: 30 },
+    { id: "crown", name: "Crown", how: "hearts", need: 0 },
+    { id: "catears", name: "Cat ears", how: "buy", price: "$0.99" },
+    { id: "shades", name: "Shades", how: "buy", price: "$0.99" },
+    { id: "wizard", name: "Wizard hat", how: "buy", price: "$0.99" },
+    { id: "tophat", name: "Top hat", how: "buy", price: "$0.99" },
+    { id: "halo", name: "Halo", how: "buy", price: "$0.99" }
+  ];
+  COLORS.forEach(function (c) { c.kind = "color"; c.sku = "color_" + c.id; });
+  HATS.forEach(function (h) { h.kind = "hat"; h.sku = "hat_" + h.id; });
+  var BUNDLE = "bundle_all", BUNDLE_PRICE = "$2.99";
+  var owned = {}, prices = {}, equipped = { color: "orange", hat: "none" };
+  try { owned = JSON.parse(localStorage.getItem("trust-owned") || "{}") || {}; equipped = JSON.parse(localStorage.getItem("trust-skin") || "null") || equipped; } catch (e) {}
+  function saveWardrobe() { try { localStorage.setItem("trust-owned", JSON.stringify(owned)); localStorage.setItem("trust-skin", JSON.stringify(equipped)); } catch (e) {} }
+  function isOwned(it) {
+    if (it.how === "free") return true;
+    if (it.how === "stars") return sum(stars) >= it.need;
+    if (it.how === "hearts") return sum(heartsGot) >= totalHearts();
+    return !!(owned[it.sku] || owned[BUNDLE]);
+  }
+  function applySkin() {
+    var c = COLORS.filter(function (x) { return x.id === equipped.color; })[0], h = HATS.filter(function (x) { return x.id === equipped.hat; })[0];
+    if (!c || !isOwned(c)) { c = COLORS[0]; equipped.color = c.id; }
+    if (!h || !isOwned(h)) { h = HATS[0]; equipped.hat = h.id; }
+    skin.body = c.body; skin.belly = c.belly; skin.hat = h.id;
+  }
+  function itemNote(it) {
+    var on = (it.kind === "color" ? equipped.color : equipped.hat) === it.id;
+    if (on) return "Wearing";
+    if (isOwned(it)) return "Owned";
+    if (it.how === "stars") return "★ " + it.need;
+    if (it.how === "hearts") return "All hearts";
+    return prices[it.sku] || it.price;
+  }
+  // buying: Google Play Billing in the app; a preview that just unlocks in a plain browser
+  async function buy(sku, done) {
+    if (!IS_APP) { owned[sku] = 1; saveWardrobe(); done(true); return; }
+    var N = plugin("NativePurchases");
+    try {
+      var ok = await N.isBillingSupported();
+      if (!ok.isBillingSupported) throw new Error("unsupported");
+      await N.purchaseProduct({ productIdentifier: sku, productType: "inapp", isConsumable: false });
+      owned[sku] = 1; saveWardrobe(); done(true);
+    } catch (e) { done(false, "Purchase did not go through."); }
+  }
+  async function loadPrices() {
+    if (!IS_APP) return;
+    var N = plugin("NativePurchases"); if (!N) return;
+    var skus = COLORS.concat(HATS).filter(function (i) { return i.how === "buy"; }).map(function (i) { return i.sku; }).concat([BUNDLE]);
+    for (var i = 0; i < skus.length; i++) {
+      try { var r = await N.getProduct({ productIdentifier: skus[i], productType: "inapp" }); if (r && r.product && r.product.priceString) prices[skus[i]] = r.product.priceString; } catch (e) {}
+    }
+    if (!$("wardrobe").hidden) renderWardrobe();
+  }
+  async function restoreBuys() {
+    var N = plugin("NativePurchases"); if (!N) return;
+    try {
+      await N.restorePurchases();
+      var r = await N.getPurchases({ productType: "inapp" }), n = 0;
+      (r.purchases || []).forEach(function (t) { if (t.productIdentifier && !owned[t.productIdentifier]) { owned[t.productIdentifier] = 1; n++; } });
+      saveWardrobe(); applySkin(); renderWardrobe(); toast(n ? "Restored " + n + " purchase" + (n > 1 ? "s" : "") + "." : "Nothing new to restore.");
+    } catch (e) { toast("Could not restore right now."); }
+  }
+  function paintTo(el, fn) {
+    var c2 = el.getContext("2d"), sv = ctx, sf = p.face;
+    ctx = c2; c2.setTransform(2, 0, 0, 2, 0, 0); c2.clearRect(0, 0, el.width, el.height); p.face = 1; fn(el.width / 2, el.height / 2); ctx = sv; p.face = sf;
+  }
+  function renderWardrobe() {
+    var grid = $("wardGrid"); grid.innerHTML = "";
+    [["Colours", COLORS], ["Hats", HATS]].forEach(function (grp) {
+      var h = document.createElement("div"); h.className = "chap"; h.textContent = grp[0]; grid.appendChild(h);
+      grp[1].forEach(function (it) {
+        var b = document.createElement("button"), cv2 = document.createElement("canvas"), nm = document.createElement("span"), nt = document.createElement("small");
+        var on = (it.kind === "color" ? equipped.color : equipped.hat) === it.id;
+        b.className = "item" + (on ? " on" : "") + (isOwned(it) ? "" : " lock");
+        cv2.width = 80; cv2.height = 80; nm.textContent = it.name; nt.textContent = itemNote(it);
+        b.appendChild(cv2); b.appendChild(nm); b.appendChild(nt); grid.appendChild(b);
+        paintTo(cv2, function (w, h2) {
+          var o = { x: w / 2, y: h2 + 17, sx: 1.5, sy: 1.5, noBlink: true, happy: true };
+          if (it.kind === "color") { o.body = it.body; o.belly = it.belly; o.hat = "none"; } else { o.hat = it.id; o.body = skin.body; o.belly = skin.belly; }
+          figure(o);
+        });
+        b.addEventListener("click", function () { pickItem(it); });
+      });
+    });
+    var anyLocked = COLORS.concat(HATS).some(function (i) { return i.how === "buy" && !isOwned(i); });
+    $("wardAll").hidden = !anyLocked; $("wardAll").textContent = "Unlock everything " + (prices[BUNDLE] || BUNDLE_PRICE);
+    $("wardRestore").hidden = !IS_APP;
+  }
+  function pickItem(it) {
+    if (isOwned(it)) { equipped[it.kind] = it.id; saveWardrobe(); applySkin(); renderWardrobe(); return; }
+    if (it.how === "stars") { toast("Earn " + it.need + " stars to unlock this (you have " + sum(stars) + ")."); return; }
+    if (it.how === "hearts") { toast("Collect every heart in Heartbreak Peak to unlock the crown."); return; }
+    buy(it.sku, function (ok, msg) { if (ok) { equipped[it.kind] = it.id; saveWardrobe(); applySkin(); renderWardrobe(); toast("Unlocked " + it.name + "!"); } else toast(msg); });
+  }
+  function openWardrobe() { $("menu").hidden = true; $("wardrobe").hidden = false; renderWardrobe(); loadPrices(); }
+  $("wardBtn").addEventListener("click", openWardrobe);
+  $("wardBack").addEventListener("click", function () { $("wardrobe").hidden = true; $("menu").hidden = false; menuStats(); });
+  $("wardAll").addEventListener("click", function () { buy(BUNDLE, function (ok, msg) { if (ok) { applySkin(); renderWardrobe(); toast("Everything unlocked. So cute!"); } else toast(msg); }); });
+  $("wardRestore").addEventListener("click", restoreBuys);
+  applySkin();
 
   /* ---------- Loop & sizing ---------- */
   function resize() {
@@ -1215,7 +1468,7 @@ canvas { display: block; }
     var dt = Math.min((t - last) / 1000, 1 / 30); last = t;
     if (!paused && !uiOpen) update(dt);
     stepCam(dt); draw();
-    if (!$("menu").hidden) paintArt("menuArt", false); else if (!$("end").hidden) paintArt("endArt", true);
+    if (!$("menu").hidden) paintArt("menuArt", false); else if (!$("end").hidden) paintArt("endArt", true); else if (!$("wardrobe").hidden) paintArt("wardArt", false);
     requestAnimationFrame(frame);
   }
 
@@ -1268,8 +1521,8 @@ canvas { display: block; }
   function openPause() {
     if (uiOpen || (mode !== "play" && mode !== "dead")) return;
     uiOpen = true; held = {}; applyHeld(); document.body.classList.add("nopad"); $("pause").hidden = false;
-    var can = lvDeaths >= 5; $("skip").disabled = !can;
-    $("skip").textContent = can ? "Skip this level" : "Skip unlocks after 5 deaths (" + lvDeaths + "/5)";
+    var can = lvDeaths >= 3; $("skip").disabled = !can;
+    $("skip").textContent = can ? "Skip this level (watch an ad)" : "Skip unlocks after 3 deaths (" + lvDeaths + "/3)";
   }
   function closeMenus() { uiOpen = false; $("pause").hidden = true; $("levels").hidden = true; document.body.classList.remove("nopad"); }
   function openLevels(from) {
@@ -1292,8 +1545,8 @@ canvas { display: block; }
   $("pauseBtn").addEventListener("click", openPause);
   $("resume").addEventListener("click", closeMenus);
   $("restart").addEventListener("click", function () { closeMenus(); var keep = lvDeaths; enter(li); lvDeaths = keep; bannerT = 0; });
-  $("skip").addEventListener("click", function () { if (lvDeaths < 5) return; closeMenus(); advance(); });
-  $("skipBtn").addEventListener("click", function () { advance(); });
+  $("skip").addEventListener("click", function () { if (lvDeaths < 3) return; askSkip(); });
+  $("skipBtn").addEventListener("click", function () { askSkip(); });
   $("lvlBtn").addEventListener("click", function () { openLevels("menu"); });
   $("lvlBtn2").addEventListener("click", function () { openLevels("pause"); });
   $("lvBack").addEventListener("click", function () { $("levels").hidden = true; if (levelsFrom === "menu") { $("menu").hidden = false; menuStats(); } else $("pause").hidden = false; });
