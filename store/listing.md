@@ -48,7 +48,7 @@ Think you can handle 54 levels of lies?
 
 **App icon**: `store/icon-512.png` (512 x 512)
 **Feature graphic**: `store/feature-graphic-1024x500.png` (1024 x 500)
-**Phone screenshots** (min 2, up to 8): everything in `store/screenshots/` (1920 x 960 each)
+**Phone screenshots** (min 2, up to 8): everything in `store/screenshots/` (1080 x 1920 each, portrait)
 
 ## Store settings
 
