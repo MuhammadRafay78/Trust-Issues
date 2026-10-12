@@ -1,6 +1,6 @@
 # Trust Issues
 
-A troll platformer for phones. Reach the door on each of 54 levels in three chapters (the last, Heartbreak Peak, is the hard one). Floors, spikes, ceilings and doors lie to you, and every death is a different cartoon explosion. Every level can be opened from the level select. The game is played with the phone upright, with the buttons in a bar under the game. Earn up to 3 stars per level and collect the hearts hidden in the hard levels.
+A troll platformer for phones. Reach the door on each of 100 levels in six chapters, each meaner than the last (Cozy Meadow, Sneaky Hills, Heartbreak Peak, Bullet Hell Lite, Rage Quit Canyon, Pure Hatred). Nearly every level adds a new hazard: bullets, rolling boulders, saws, crushers, lasers, meteors, wind, ice, conveyor belts and vanishing floors. Floors, spikes, ceilings and doors lie to you, and every death is a different cartoon explosion. Every level can be opened from the level select. The game is played with the phone upright, with the buttons in a bar under the game. Earn up to 3 stars per level and collect the hearts hidden in the hard levels.
 
 Plain HTML canvas (`www/index.html`), packaged for Android (portrait) with Capacitor.
 
