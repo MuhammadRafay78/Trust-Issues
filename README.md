@@ -1,6 +1,6 @@
 # Trust Issues
 
-A troll platformer for phones. Reach the door on each of 54 levels in three chapters (the last, Heartbreak Peak, is the hard one). Floors, spikes, ceilings and doors lie to you, and every death is a different cartoon explosion. Earn up to 3 stars per level and collect the hearts hidden in the hard levels.
+A troll platformer for phones. Reach the door on each of 54 levels in three chapters (the last, Heartbreak Peak, is the hard one). Floors, spikes, ceilings and doors lie to you, and every death is a different cartoon explosion. Fog hides what is coming (only a few tiles ahead are visible), and every level can be opened from the level select. Earn up to 3 stars per level and collect the hearts hidden in the hard levels.
 
 Plain HTML canvas (`www/index.html`), packaged for Android (landscape) with Capacitor.
 
