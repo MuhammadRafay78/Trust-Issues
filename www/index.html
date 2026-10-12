@@ -86,6 +86,12 @@ canvas { display: block; }
 .mute svg { width: 20px; height: 20px; fill: currentColor; stroke: currentColor; }
 .mute.off .w, .mute:not(.off) .x { display: none; }
 .mute.off { background: #ffe0e0; }
+@media (orientation: portrait) {
+  /* upright phone: keep the pause and skip buttons under the Deaths pill, out of the level name */
+  .hudbtn { left: auto; right: calc(10px + env(safe-area-inset-right, 0px)); transform: none; top: calc(50px + env(safe-area-inset-top, 0px)); }
+  .hudbtn.skip { right: calc(10px + env(safe-area-inset-right, 0px)); top: calc(104px + env(safe-area-inset-top, 0px)); }
+  .items { max-height: 56vh; }
+}
 [hidden] { display: none !important; }
 </style>
 
@@ -763,13 +769,6 @@ canvas { display: block; }
     ctx.fillStyle = "#ffd23f"; ctx.beginPath(); ctx.arc(8.6, 9.5, 1.1, 0, 6.3); ctx.fill();
     ctx.restore();
   }
-  function cloud(x, y, s, col) {
-    ctx.globalAlpha = 0.92; ctx.fillStyle = col || "#fff"; ctx.beginPath();
-    ctx.moveTo(x + 9 * s, y); ctx.arc(x, y, 9 * s, 0, 6.3);
-    ctx.moveTo(x + 23 * s, y - 5 * s); ctx.arc(x + 11 * s, y - 5 * s, 12 * s, 0, 6.3);
-    ctx.moveTo(x + 33 * s, y); ctx.arc(x + 24 * s, y, 9 * s, 0, 6.3);
-    ctx.rect(x, y, 24 * s, 9 * s); ctx.fill(); ctx.globalAlpha = 1;
-  }
   function critterArt(x, y, dir, t) {
     // x = centre, y = bottom of the tile it walks on
     var run = Math.sin(t * 22), bob = Math.abs(run) * 0.8;
@@ -787,9 +786,9 @@ canvas { display: block; }
   }
   function heartPickup(x, y) { var b = Math.sin(tick * 4 + x) * 1.6; dot(x, y + b, 8, "rgba(255,107,129,.25)"); ctx.save(); ctx.strokeStyle = INK; ctx.lineWidth = 1; heart(x, y + b, 5.2, "#ff6b81"); ctx.stroke(); ctx.restore(); dot(x - 2, y + b - 2, 1, "#fff", 0.9); }
   var PALS = [
-    { top: "#7cc8ff", bot: "#d9f1ff", sun: "#ffe27a", glow: "rgba(255,243,176,.4)", h1: "#a5dd96", h2: "#7fcb74", cloud: "#ffffff" },
-    { top: "#6fb7f5", bot: "#e6f4ff", sun: "#ffe27a", glow: "rgba(255,243,176,.4)", h1: "#9ad48a", h2: "#6fc067", cloud: "#ffffff" },
-    { top: "#ff9ecb", bot: "#ffe3b8", sun: "#fff3b0", glow: "rgba(255,255,255,.45)", h1: "#c9a0e8", h2: "#a779d6", cloud: "#fff0f7" }
+    { top: "#7cc8ff", bot: "#d9f1ff", sun: "#ffe27a", glow: "rgba(255,243,176,.4)", h1: "#a5dd96", h2: "#7fcb74" },
+    { top: "#6fb7f5", bot: "#e6f4ff", sun: "#ffe27a", glow: "rgba(255,243,176,.4)", h1: "#9ad48a", h2: "#6fc067" },
+    { top: "#ff9ecb", bot: "#ffe3b8", sun: "#fff3b0", glow: "rgba(255,255,255,.45)", h1: "#c9a0e8", h2: "#a779d6" }
   ];
   function background() {
     var pal = PALS[li >= 0 && LEVELS[li] ? chapterOf(li) : 0];
@@ -805,8 +804,6 @@ canvas { display: block; }
     ctx.fillStyle = pal.h2; ctx.beginPath(); ctx.moveTo(0, H);
     for (x = 0; x <= W; x += 8) ctx.lineTo(x, 218 + Math.sin(x * 0.02 + 3) * 10);
     ctx.lineTo(W, H); ctx.fill();
-    var bases = [[40, 50, 1], [190, 90, 0.8], [320, 36, 1.1], [450, 110, 0.7]];
-    for (i = 0; i < bases.length; i++) cloud(((bases[i][0] + tick * (4 + i * 1.5)) % (W + 80)) - 40, bases[i][1], bases[i][2], pal.cloud);
     if (pal === PALS[2]) for (i = 0; i < 9; i++) { var hq = (tick * 0.05 + hash(i, 4)) % 1; ctx.globalAlpha = 0.5 * Math.sin(hq * Math.PI); heart(hash(i, 9) * W + Math.sin(tick + i) * 6, H - hq * H * 0.9, 3 + hash(i, 1) * 2, "#fff"); ctx.globalAlpha = 1; }
   }
   var skin = { body: "#ff9f43", belly: "#ffd08a", hat: "none" };
@@ -1136,18 +1133,6 @@ canvas { display: block; }
     rr(px, y, w, h, h / 2); ctx.fillStyle = "rgba(255,248,232,.95)"; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.stroke();
     ctx.fillStyle = INK; ctx.textAlign = "left"; ctx.fillText(text, px + 7, y + h / 2 + 0.5);
   }
-  function drawFog() {
-    var x0 = fogX, col = chapterOf(li) >= 2 ? "#ffe6f2" : "#e9f5ff", i;
-    var gr = ctx.createLinearGradient(x0 - 56, 0, x0, 0);
-    gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(1, col);
-    ctx.fillStyle = gr; ctx.fillRect(x0 - 56, -H, 56, H * 3);
-    ctx.fillStyle = col; ctx.fillRect(x0, -H, W * 3, H * 3);
-    for (i = 0; i < 14; i++) dot(x0 + Math.sin(tick * 1.1 + i * 1.7) * 4 - 4, i * 21 - 8, 15 + (i % 3) * 3, col, 0.95);
-    if (x0 < W) {
-      ctx.font = "800 20px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "rgba(74,47,32,.22)";
-      for (i = 0; i < 3; i++) ctx.fillText("?", x0 + 34 + i * 30, (p ? p.y : H / 2) - 6 + Math.sin(tick * 2 + i * 1.3) * 5 - i * 6);
-    }
-  }
   function banner(text, y, alpha, size) {
     ctx.font = "800 " + (size || 24) + "px " + FONT; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.lineJoin = "round"; ctx.lineWidth = (size || 24) > 20 ? 6 : 4; ctx.strokeStyle = "rgba(74,47,32," + alpha + ")"; ctx.strokeText(text, viewW / 2, y);
@@ -1201,7 +1186,6 @@ canvas { display: block; }
       ctx.fillStyle = pt.col; ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.t < 0.35 && pt.col === "#fff8e8" ? 1.6 : 2.6, 0, 6.3); ctx.fill(); ctx.lineWidth = 0.8; ctx.strokeStyle = INK; ctx.stroke();
     }
     if (mode === "play" || mode === "end" || mode === "menu" || mode === "win") drawPlayer();
-    if (mode !== "menu") drawFog();
     ctx.restore();
     if (mode === "menu" || mode === "end") return;
     pill((li + 1) + "/" + LEVELS.length + "  " + LEVELS[li].name, 8, 6, "left", 11);
@@ -1475,14 +1459,8 @@ canvas { display: block; }
     ty = viewH >= H ? H - viewH : Math.max(0, Math.min(H - viewH, ty));
     return [tx, ty];
   }
-  // Fog hides what is coming: the level only shows a few tiles ahead of you.
-  var fogX = 0;
-  function fogTarget() {
-    if (!p || mode === "win" || mode === "end") return W + 240;
-    return p.x + p.w / 2 + (chapterOf(li) >= 2 ? 12 : 8) * T;
-  }
-  function snapCam() { var t = camTarget(); camX = t[0]; camY = t[1]; fogX = fogTarget(); }
-  function stepCam(dt) { var t = camTarget(), k = Math.min(1, dt * 7); camX += (t[0] - camX) * k; camY += (t[1] - camY) * k; fogX += (fogTarget() - fogX) * Math.min(1, dt * 5); }
+  function snapCam() { var t = camTarget(); camX = t[0]; camY = t[1]; }
+  function stepCam(dt) { var t = camTarget(), k = Math.min(1, dt * 7); camX += (t[0] - camX) * k; camY += (t[1] - camY) * k; }
   window.addEventListener("resize", resize); window.addEventListener("orientationchange", function () { setTimeout(resize, 150); });
   var last = performance.now(), paused = false;
   function frame(t) {

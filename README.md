@@ -1,8 +1,8 @@
 # Trust Issues
 
-A troll platformer for phones. Reach the door on each of 54 levels in three chapters (the last, Heartbreak Peak, is the hard one). Floors, spikes, ceilings and doors lie to you, and every death is a different cartoon explosion. Fog hides what is coming (only a few tiles ahead are visible), and every level can be opened from the level select. Earn up to 3 stars per level and collect the hearts hidden in the hard levels.
+A troll platformer for phones. Reach the door on each of 54 levels in three chapters (the last, Heartbreak Peak, is the hard one). Floors, spikes, ceilings and doors lie to you, and every death is a different cartoon explosion. Every level can be opened from the level select. The game is played with the phone upright, with the buttons in a bar under the game. Earn up to 3 stars per level and collect the hearts hidden in the hard levels.
 
-Plain HTML canvas (`www/index.html`), packaged for Android (landscape) with Capacitor.
+Plain HTML canvas (`www/index.html`), packaged for Android (portrait) with Capacitor.
 
 ## Build
 CI (`.github/workflows/build.yml`) builds a debug APK on every push to `main`. Add these repo secrets to also get a signed Play Store bundle: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
